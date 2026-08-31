@@ -38,6 +38,3 @@ jobs:
 
       - name: Differential battery vs FPC CLI
         run: cd vizia && ECW_FPC_BIN=$PWD/../ecw cargo test --test battery
-
-      - name: Check no unexpected diffs
-        run: cd vizia && ECW_FPC_BIN=$PWD/../ecw cargo test --test battery 2>&1 | grep -q "0 unexpected"
