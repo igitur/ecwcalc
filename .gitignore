@@ -1,11 +1,2 @@
 # build artifacts
-ecw
-ecw.exe
-ecwcalc
-ecwcalc.exe
-*.o
-*.ppu
-*.bak
-gui/lib/
-gui/ecwcalc.ini
-vizia/target/
+/target/

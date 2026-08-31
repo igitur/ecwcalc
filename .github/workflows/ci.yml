@@ -13,28 +13,32 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install FPC + Lazarus
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y fpc lazarus libxkbcommon-dev libwayland-dev
-
-      - name: Build FPC CLI
-        run: fpc -O3 ecw.pas
-
-      - name: Smoke-test CLI
-        run: |
-          test "$(./ecw '2+3*4')" = "14"
-          test "$(./ecw '2**1000')" = "1.07150860718627E+0301"
-          test "$(./ecw '0xFFFFFFFF')" = "-1"
-          test "$(./ecw --unsigned '0xFFFFFFFF')" = "4294967295"
-
-      - name: Build Lazarus GUI
-        run: cd gui && lazbuild ecwcalc.lpi
-
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: Rust unit tests
-        run: cd vizia && cargo test --lib
+      - name: Install Linux build deps (winit/glutin)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxkbcommon-dev libwayland-dev libx11-dev \
+            libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libxcb1-dev \
+            libgl1-mesa-dev libegl1-mesa-dev
 
-      - name: Differential battery vs FPC CLI
-        run: cd vizia && ECW_FPC_BIN=$PWD/../ecw cargo test --test battery
+      - name: Build
+        run: cargo build
+
+      - name: Unit tests
+        run: cargo test --lib
+
+      # Differential battery vs the FPC reference. The FPC CLI (byte-exact vs
+      # the original) lives on `main`; fetch it there and compile with fpc.
+      - name: Install FPC (oracle)
+        run: sudo apt-get install -y fpc
+
+      - name: Build FPC oracle from main
+        run: |
+          git clone --depth 1 --branch main \
+            https://github.com/igitur/ecwcalc.git /tmp/ecw-oracle
+          cd /tmp/ecw-oracle && fpc -O3 ecw.pas
+
+      - name: Differential battery vs FPC oracle
+        run: ECW_FPC_BIN=/tmp/ecw-oracle/ecw cargo test --test battery
