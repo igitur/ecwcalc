@@ -1,0 +1,12 @@
+[package]
+name = "ecw-vizia"
+version = "0.1.0"
+edition = "2021"
+description = "ECW Expression Calculator — vizia (immediate mode) port"
+license = "MIT"
+
+[dependencies]
+vizia = "0.4"
+
+[profile.release]
+opt-level = 3

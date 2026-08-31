@@ -6,3 +6,4 @@ ecwcalc
 *.bak
 gui/lib/
 gui/ecwcalc.ini
+vizia/target/
