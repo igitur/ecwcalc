@@ -65,6 +65,27 @@ signals):
 Screenshots of every form are in `vizia/screenshots/` (captured live from
 the running port).
 
+## CI & releases
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `.github/workflows/ci.yml` | push / PR to `main`, `vizia-port` | Ubuntu: builds FPC CLI + Lazarus GUI, runs CLI smoke tests, Rust unit tests, and the 139-case differential battery vs the FPC CLI |
+| `.github/workflows/release.yml` | tag `v*` (or manual dispatch) | Builds all three binaries on Linux x64, Windows x64, macOS arm64, runs the same tests, and creates a GitHub Release with `ecw`, `ecwcalc`, `ecw-vizia` for each platform |
+
+Release binaries per platform (attached to the release):
+
+| Platform | CLI | Lazarus GUI | vizia GUI |
+|---|---|---|---|
+| linux-x64 | `ecw-linux-x64` | `ecwcalc-linux-x64` | `ecw-vizia-linux-x64` |
+| windows-x64 | `ecw-windows-x64.exe` | `ecwcalc-windows-x64.exe` | `ecw-vizia-windows-x64.exe` |
+| macos-arm64 | `ecw-macos-arm64` | `ecwcalc-macos-arm64` | `ecw-vizia-macos-arm64` |
+
+The differential battery runs only on x86_64 (Linux/Windows): FPC's 80-bit
+`Extended` is available there, matching the original's arithmetic byte-for-
+byte. macOS runners are arm64, where `Extended` falls back to Double — the
+macOS build still compiles and passes CLI smoke tests, but is not
+byte-exact. To ship a release: `git tag v1.0 && git push origin v1.0`.
+
 ## Language features (all ground-truthed against the original)
 
 - **Operators** (loosest → tightest):

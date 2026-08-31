@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main, vizia-port]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build & test (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FPC + Lazarus
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fpc lazarus libxkbcommon-dev libwayland-dev
+
+      - name: Build FPC CLI
+        run: fpc -O3 ecw.pas
+
+      - name: Smoke-test CLI
+        run: |
+          test "$(./ecw '2+3*4')" = "14"
+          test "$(./ecw '2**1000')" = "1.07150860718627E+0301"
+          test "$(./ecw '0xFFFFFFFF')" = "-1"
+          test "$(./ecw --unsigned '0xFFFFFFFF')" = "4294967295"
+
+      - name: Build Lazarus GUI
+        run: cd gui && lazbuild ecwcalc.lpi
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust unit tests
+        run: cd vizia && cargo test --lib
+
+      - name: Differential battery vs FPC CLI
+        run: cd vizia && ECW_FPC_BIN=$PWD/../ecw cargo test --test battery
+
+      - name: Check no unexpected diffs
+        run: cd vizia && ECW_FPC_BIN=$PWD/../ecw cargo test --test battery 2>&1 | grep -q "0 unexpected"
