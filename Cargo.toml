@@ -9,4 +9,8 @@ license = "MIT"
 vizia = "0.4"
 
 [profile.release]
-opt-level = 3
+opt-level = "s"          # size over speed (calc doesn't need max perf)
+lto = "thin"             # cross-crate dead-code elimination
+codegen-units = 1        # maximizes LTO effect
+panic = "abort"          # drop Rust unwind tables
+strip = true             # remove symbol table + debug info
