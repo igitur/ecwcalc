@@ -50,10 +50,20 @@ cargo build --release
 cargo test                           # engine unit tests + battery vs the FPC CLI
 ```
 
-The vizia GUI reproduces the original main form: expression combo, five
-result formats (Dec/Hex/Bin/Oct/Exp) updated live on Evaluate, error status,
-and the Copy/Setup…/Help/Close button column — immediate-mode (no retained
-widget tree; the view is rebuilt each frame from state signals).
+The vizia GUI reproduces **all four of the original's forms** in immediate
+mode (no retained widget tree; views are rebuilt each frame from state
+signals):
+
+| Form | What it is |
+|---|---|
+| Calculator | main form — expression field, history, Copy-as radios (Dec/Hex/Bin/Oct/Exp), five result rows, error status, Evaluate/Copy/Setup…/Help/Close |
+| Setup | tabbed dialog — Interface (auto-calc, small dialog, stay-on-top, show error status, copy behaviour, display options) + User variables/functions (list + Add/Edit/Delete) |
+| Definition | function/variable dialog — declaration + expression fields, OK/Cancel |
+| Tiny form | compact calculator (toggled by "Small dialog") — output, input, glyph buttons ¬ = ¼ # |
+| Help | language reference summary |
+
+Screenshots of every form are in `vizia/screenshots/` (captured live from
+the running port).
 
 ## Language features (all ground-truthed against the original)
 

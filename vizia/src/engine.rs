@@ -1074,6 +1074,74 @@ impl Engine {
             Err(m) => Err(m),
         }
     }
+
+    /// Remove the def at `idx` (0-based). Returns the removed def's decl text.
+    pub fn delete_def(&mut self, idx: usize) -> Option<String> {
+        if idx < self.defs.len() {
+            let d = self.defs.remove(idx);
+            Some(format!(
+                "{}{}",
+                d.name,
+                if d.is_func {
+                    format!("({})", d.arg_names.join(","))
+                } else {
+                    String::new()
+                }
+            ))
+        } else {
+            None
+        }
+    }
+
+    /// Human-readable declaration for the defs list, e.g. `f(x)` or `z`.
+    pub fn unsigned(&self) -> bool {
+        self.unsigned_hex
+    }
+    pub fn def_decl(&self, idx: usize) -> String {
+        if let Some(d) = self.defs.get(idx) {
+            format!(
+                "{}{}",
+                d.name,
+                if d.is_func {
+                    format!("({})", d.arg_names.join(","))
+                } else {
+                    String::new()
+                }
+            )
+        } else {
+            String::new()
+        }
+    }
+
+    pub fn def_body(&self, idx: usize) -> String {
+        self.defs.get(idx).map(|d| d.body.clone()).unwrap_or_default()
+    }
+
+    /// Update an existing def's body by index.
+    pub fn update_def_body(&mut self, idx: usize, body: &str) -> Result<(), String> {
+        if idx >= self.defs.len() {
+            return Err("invalid def index".to_string());
+        }
+        // validate by evaluating body with args bound to zero
+        let d = &self.defs[idx];
+        let saved_locals = std::mem::take(&mut self.locals);
+        let mut args: Vec<String> = Vec::new();
+        if d.is_func {
+            for a in &d.arg_names {
+                self.locals.push((a.clone(), 0.0));
+                args.push(a.clone());
+            }
+        }
+        let mut v = 0.0;
+        let expr = if args.is_empty() {
+            format!("{}0", body)
+        } else {
+            format!("{}({})0", body, args.join(","))
+        };
+        let r = self.eval_expr(&expr, &mut v);
+        self.locals = saved_locals;
+        r.map(|_| self.defs[idx].body = body.to_string())
+    }
 }
 
 // ============================================================================
@@ -1142,9 +1210,9 @@ fn trunc32(v: f64) -> u32 {
     (v.trunc() as i64) as u32
 }
 
-pub fn fmt_hex32(eng: &Engine, v: f64) -> String {
+pub fn fmt_hex32(unsigned_hex: bool, v: f64) -> String {
     let u = trunc32(v);
-    if eng.unsigned_hex {
+    if unsigned_hex {
         format!("{:08X}", u)
     } else {
         format!("{:08X}", u as i32 as u32)
