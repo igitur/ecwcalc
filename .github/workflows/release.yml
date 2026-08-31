@@ -49,16 +49,27 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install fpc
-          brew install --cask lazarus
-          # the cask installs lazbuild inside the app bundle; expose it
-          echo "/Applications/Lazarus.app/Contents/MacOS" >> "$GITHUB_PATH"
-          which fpc lazbuild || true
+          # homebrew cask 'lazarus' is deprecated (disabled 2026-01-27) and its
+          # fpc-src pkg is incompatible with current macOS, so pull the
+          # official aarch64 zip (IDE + lazbuild) directly instead.
+          curl -L --retry 3 -o /tmp/lazarus.zip \
+            "https://download.lazarus-ide.org/Lazarus%20macOS%20aarch64/Lazarus%204.8/lazarus-darwin-aarch64-4.8.zip"
+          mkdir -p /tmp/lazarus && unzip -q /tmp/lazarus.zip -d /tmp/lazarus
+          xattr -cr /tmp/lazarus 2>/dev/null || true
+          LAZBUILD=$(find /tmp/lazarus -name lazbuild -type f | head -1)
+          echo "lazbuild: $LAZBUILD"
+          test -n "$LAZBUILD" && echo "$(dirname "$LAZBUILD")" >> "$GITHUB_PATH"
+          which fpc || true
 
-      - name: Install FPC + Lazarus (Windows, choco bundle)
+      - name: Install FPC + Lazarus (Windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          choco install lazarus --no-progress -y
+          # choco 'lazarus' downloads from SourceForge (flaky, EOF mid-stream);
+          # grab the official mirror exe directly and silent-install it.
+          curl -L --retry 3 -o /tmp/lazarus.exe \
+            "https://download.lazarus-ide.org/Lazarus%20Windows%2064%20bits/Lazarus%203.6/lazarus-3.6-fpc-3.2.2-win64.exe"
+          /tmp/lazarus.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
           echo "C:\\lazarus" >> "$GITHUB_PATH"
           FPCVER=$(ls /c/lazarus/fpc | head -1)
           echo "C:\\lazarus\\fpc\\${FPCVER}\\bin\\x86_64-win64" >> "$GITHUB_PATH"
