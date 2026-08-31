@@ -4,7 +4,9 @@ use ecw_vizia::engine::eval_one;
 
 fn fpc(expr: &str) -> String {
     // The FPC CLI outputs the result on stdout after '> expr'.
-    let out = std::process::Command::new("/tmp/ecw_fpc/ecw")
+    // Path overridable via ECW_FPC_BIN (CI builds the CLI per-platform).
+    let bin = std::env::var("ECW_FPC_BIN").unwrap_or_else(|_| "/tmp/ecw_fpc/ecw".to_string());
+    let out = std::process::Command::new(&bin)
         .arg(expr)
         .output()
         .expect("fpc binary");
