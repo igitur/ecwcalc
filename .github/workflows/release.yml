@@ -33,13 +33,17 @@ jobs:
       - name: Build cross-compiler (windows only)
         if: matrix.suffix == 'windows-x64'
         run: |
-          cd /usr/share/fpcsrc/3.2.2/compiler
+          curl -sL --max-time 300 \
+            "https://sourceforge.net/projects/freepascal/files/Source/3.2.2/fpc-3.2.2.source.tar.gz/download" \
+            -o /tmp/fpc-src.tar.gz
+          tar xzf /tmp/fpc-src.tar.gz -C /tmp
+          cd /tmp/fpc-3.2.2
           sudo make crossinstall OS_TARGET=win64 CPU_TARGET=x86_64
 
       - name: Build CLI (release)
         run: |
           mkdir -p dist
-          fpc -O2 -Xs ${{ matrix.target }} -o dist/ecw-fpc-${{ matrix.suffix }}${{ matrix.exe }} ecw.pas
+          fpc -O2 -Xs ${{ matrix.target }} -odist/ecw-fpc-${{ matrix.suffix }}${{ matrix.exe }} ecw.pas
 
       - name: Build GUI (linux only)
         if: matrix.suffix == 'linux-x64'
