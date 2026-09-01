@@ -5,7 +5,7 @@ unit cfgform;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, StdCtrls, ExtCtrls, ComCtrls,
+  Classes, SysUtils, Forms, Controls, StdCtrls, ExtCtrls, ComCtrls,
   Dialogs, Config, ecwengine, defform;
 
 type
@@ -38,12 +38,10 @@ type
     procedure BtnDownClick(Sender: TObject);
     procedure BtnHistClrClick(Sender: TObject);
     procedure DefListDblClick(Sender: TObject);
-    procedure FormShow(Sender: TObject);
   private
     procedure LoadCfg;
     procedure SaveCfg;
     procedure RefreshDefs;
-    procedure AdjustGroupChildren(Data: PtrInt);
   public
     OnClearHistory: TNotifyEvent;
     constructor Create(AOwner: TComponent); override;
@@ -59,57 +57,6 @@ implementation
 constructor TCfgForm.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-end;
-
-procedure TCfgForm.FormShow(Sender: TObject);
-begin
-  // LCL positions TGroupBox children in the client area BELOW the caption;
-  // the original Delphi DFM positions them from the frame's top edge. Shift
-  // each group's children up by the measured caption offset so the layout
-  // matches the original. The offset is read from the widgetset (deferred
-  // until the form is fully shown), so it stays correct regardless of the
-  // active font / screen resolution.
-  Application.QueueAsyncCall(@AdjustGroupChildren, 0);
-end;
-
-procedure TCfgForm.AdjustGroupChildren(Data: PtrInt);
-var
-  Off: Integer;
-begin
-  Off := GroupGeneral.ClientOrigin.Y - (TabInt.ClientOrigin.Y + GroupGeneral.Top);
-  if Off > 0 then begin
-    OptAutoCalc.Top := OptAutoCalc.Top - Off;
-    OptSmallDlg.Top := OptSmallDlg.Top - Off;
-    OptStatus.Top   := OptStatus.Top - Off;
-    OptOnTop.Top    := OptOnTop.Top - Off;
-  end;
-  if Off > 0 then begin
-    OptCopyMode0.Top := OptCopyMode0.Top - Off;
-    OptCopyMode1.Top := OptCopyMode1.Top - Off;
-    OptCopyAsIs.Top  := OptCopyAsIs.Top - Off;
-  end;
-  if Off > 0 then begin
-    OptRAlign.Top   := OptRAlign.Top - Off;
-    OptNoLead0.Top  := OptNoLead0.Top - Off;
-    OptNoTrail0.Top := OptNoTrail0.Top - Off;
-    OptPrec.Top     := OptPrec.Top - Off;
-    LabelPrec.Top   := LabelPrec.Top - Off;
-  end;
-  if Off > 0 then begin
-    LblSep1.Top    := LblSep1.Top - Off;
-    LblSep3.Top    := LblSep3.Top - Off;
-    OptSep0.Top    := OptSep0.Top - Off;
-    OptSep1.Top    := OptSep1.Top - Off;
-    OptSep2.Top    := OptSep2.Top - Off;
-    LblConst1.Top  := LblConst1.Top - Off;
-    OptUnsHex.Top  := OptUnsHex.Top - Off;
-  end;
-  if Off > 0 then begin
-    OptHistUpdC.Top := OptHistUpdC.Top - Off;
-    OptHistUpdE.Top := OptHistUpdE.Top - Off;
-    BtnHistClr.Top  := BtnHistClr.Top - Off;
-    OptAllowMul.Top := OptAllowMul.Top - Off;
-  end;
 end;
 
 procedure TCfgForm.LoadCfg;

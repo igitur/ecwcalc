@@ -4,7 +4,6 @@ object CfgForm: TCfgForm
   ClientWidth = 436
   BorderStyle = bsDialog
   Position = poScreenCenter
-  OnShow = FormShow
   object PageControl: TPageControl
     Left = 6
     Top = 6
@@ -21,28 +20,28 @@ object CfgForm: TCfgForm
         Caption = ' General settings '
         object OptAutoCalc: TCheckBox
           Left = 12
-          Top = 16
+          Top = -1
           Width = 360
           Height = 23
           Caption = '&Automatic calculations (disable ''Evaluate'' button)'
         end
         object OptSmallDlg: TCheckBox
           Left = 12
-          Top = 34
+          Top = 17
           Width = 360
           Height = 23
           Caption = '&Small dialog (show simplified dialog form)'
         end
         object OptStatus: TCheckBox
           Left = 12
-          Top = 52
+          Top = 35
           Width = 360
           Height = 23
           Caption = 'S&how error status'
         end
         object OptOnTop: TCheckBox
           Left = 12
-          Top = 70
+          Top = 53
           Width = 360
           Height = 23
           Caption = 'Always stay &on top'
@@ -56,21 +55,21 @@ object CfgForm: TCfgForm
         Caption = ' ''Copy'' button behaviour '
         object OptCopyMode0: TRadioButton
           Left = 12
-          Top = 16
+          Top = -1
           Width = 200
           Height = 23
           Caption = 'Copy result into &edit field'
         end
         object OptCopyMode1: TRadioButton
           Left = 12
-          Top = 34
+          Top = 17
           Width = 200
           Height = 23
           Caption = 'Copy result to &clipboard'
         end
         object OptCopyAsIs: TCheckBox
           Left = 230
-          Top = 16
+          Top = -1
           Width = 130
           Height = 23
           Caption = 'Cop&y as is'
@@ -84,35 +83,35 @@ object CfgForm: TCfgForm
         Caption = ' Results display '
         object OptRAlign: TCheckBox
           Left = 12
-          Top = 16
+          Top = -1
           Width = 360
           Height = 23
           Caption = 'Show results &right aligned'
         end
         object OptNoLead0: TCheckBox
           Left = 12
-          Top = 34
+          Top = 17
           Width = 360
           Height = 23
           Caption = 'Show hex/bin/oct results without &leading zeros'
         end
         object OptNoTrail0: TCheckBox
           Left = 12
-          Top = 52
+          Top = 35
           Width = 360
           Height = 23
           Caption = 'Show decimal result without &trailing zeros'
         end
         object OptPrec: TEdit
           Left = 12
-          Top = 72
+          Top = 55
           Width = 25
           Height = 23
           Text = '17'
         end
         object LabelPrec: TLabel
           Left = 42
-          Top = 74
+          Top = 57
           Height = 17
           Caption = '&Digits after decimal point in dec/exp results'
         end
@@ -196,7 +195,7 @@ object CfgForm: TCfgForm
         Caption = ' Separator characters '
         object LblSep1: TLabel
           Left = 12
-          Top = 12
+          Top = -5
           Width = 325
           Height = 30
           WordWrap = True
@@ -205,28 +204,28 @@ object CfgForm: TCfgForm
         end
         object LblSep3: TLabel
           Left = 36
-          Top = 48
+          Top = 31
           Width = 290
           Height = 13
           Caption = 'Decimal separator    List separator'
         end
         object OptSep0: TRadioButton
           Left = 12
-          Top = 66
+          Top = 49
           Width = 250
           Height = 23
           Caption = '    .        ,    '
         end
         object OptSep1: TRadioButton
           Left = 12
-          Top = 84
+          Top = 67
           Width = 250
           Height = 23
           Caption = '    ,        ;    '
         end
         object OptSep2: TRadioButton
           Left = 12
-          Top = 102
+          Top = 85
           Width = 250
           Height = 23
           Caption = '    .        ;    '
@@ -240,7 +239,7 @@ object CfgForm: TCfgForm
         Caption = ' Constants '
         object LblConst1: TLabel
           Left = 12
-          Top = 12
+          Top = -5
           Width = 325
           Height = 30
           WordWrap = True
@@ -249,7 +248,7 @@ object CfgForm: TCfgForm
         end
         object OptUnsHex: TCheckBox
           Left = 12
-          Top = 50
+          Top = 33
           Width = 325
           Height = 23
           Caption = 'Always treat hex/bin/oct string as &unsigned number'
@@ -266,21 +265,21 @@ object CfgForm: TCfgForm
         Caption = ' Input history '
         object OptHistUpdC: TCheckBox
           Left = 12
-          Top = 18
+          Top = 1
           Width = 290
           Height = 23
           Caption = 'Update history on &Copy command'
         end
         object OptHistUpdE: TCheckBox
           Left = 12
-          Top = 36
+          Top = 19
           Width = 290
           Height = 23
           Caption = 'Update history on &Evaluate command'
         end
         object BtnHistClr: TButton
           Left = 12
-          Top = 58
+          Top = 41
           Width = 111
           Height = 25
           AutoSize = False
@@ -296,7 +295,7 @@ object CfgForm: TCfgForm
         Caption = ' Appearance '
         object OptAllowMul: TCheckBox
           Left = 12
-          Top = 18
+          Top = 1
           Width = 290
           Height = 23
           Caption = '&Allow multiple program instances'
