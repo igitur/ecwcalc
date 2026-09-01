@@ -35,6 +35,7 @@ type
     procedure BtnEditClick(Sender: TObject);
     procedure BtnDeleteClick(Sender: TObject);
     procedure DefListDblClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   public
     constructor Create(AOwner: TComponent); override;
   end;
@@ -48,11 +49,48 @@ constructor TCfgForm.Create(AOwner: TComponent);
 begin
   inherited CreateNew(AOwner, 1);
   Caption := 'Calculator configuration';
-  ClientWidth := 420;
-  ClientHeight := 320;
+  ClientWidth := 436;
+  ClientHeight := 346;
   Position := poScreenCenter;
   BorderStyle := bsDialog;
+  OnShow := @FormShow;
   BuildControls;
+end;
+
+procedure TCfgForm.FormShow(Sender: TObject);
+var
+  Off: Integer;
+  Bmp: TBitmap;
+begin
+  // LCL positions TGroupBox children in the client area BELOW the caption
+  // (win32 offset = TMHeight+3; gtk2/3 similar); the original Delphi DFM
+  // positions them from the frame's top edge. Shift each group's children
+  // up by the caption offset so the layout matches the original.
+  Bmp := TBitmap.Create;
+  try
+    Bmp.Canvas.Font := Font;
+    Off := Bmp.Canvas.TextHeight('Ag') + 3;
+  finally
+    Bmp.Free;
+  end;
+  if Off > 0 then begin
+    OptAutoCalc.Top := 16 - Off;
+    OptSmallDlg.Top := 34 - Off;
+    OptStatus.Top   := 52 - Off;
+    OptOnTop.Top    := 70 - Off;
+  end;
+  if Off > 0 then begin
+    OptCopyMode0.Top := 16 - Off;
+    OptCopyMode1.Top := 34 - Off;
+    OptCopyAsIs.Top  := 16 - Off;
+  end;
+  if Off > 0 then begin
+    OptRAlign.Top   := 16 - Off;
+    OptNoLead0.Top  := 34 - Off;
+    OptNoTrail0.Top := 52 - Off;
+    OptPrec.Top     := 72 - Off;
+    LabelPrec.Top   := 74 - Off;
+  end;
 end;
 
 procedure TCfgForm.BuildControls;
@@ -60,72 +98,142 @@ var
   B: TButton;
 begin
   PageControl := TPageControl.Create(Self); PageControl.Parent := Self;
-  PageControl.Left := 8; PageControl.Top := 8; PageControl.Width := 404;
-  PageControl.Height := 260;
+  PageControl.Left := 6; PageControl.Top := 6; PageControl.Width := 423;
+  PageControl.Height := 303;
 
   { -------- Interface tab -------- }
   TabInt := PageControl.AddTabSheet;
   TabInt.Caption := 'Interface';
 
   GroupGeneral := TGroupBox.Create(Self); GroupGeneral.Parent := TabInt;
-  GroupGeneral.Left := 8; GroupGeneral.Top := 8; GroupGeneral.Width := 380;
-  GroupGeneral.Height := 92; GroupGeneral.Caption := ' General settings ';
+  GroupGeneral.Left := 8; GroupGeneral.Top := 4;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  GroupGeneral.Width := 380; // GTK fonts are wider than MS Sans Serif
+  {$ELSE}
+  GroupGeneral.Width := 340; // original DFM geometry
+  {$ENDIF}
+  GroupGeneral.Height := 94; GroupGeneral.Caption := ' General settings ';
 
   OptAutoCalc := TCheckBox.Create(Self); OptAutoCalc.Parent := GroupGeneral;
-  OptAutoCalc.Left := 8; OptAutoCalc.Top := 18; OptAutoCalc.Width := 360;
+  OptAutoCalc.Left := 12; OptAutoCalc.Top := 16;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptAutoCalc.Width := 360;
+  {$ELSE}
+  OptAutoCalc.Width := 300;
+  {$ENDIF}
   OptAutoCalc.Caption := '&Automatic calculations (disable ''Evaluate'' button)';
 
   OptSmallDlg := TCheckBox.Create(Self); OptSmallDlg.Parent := GroupGeneral;
-  OptSmallDlg.Left := 8; OptSmallDlg.Top := 40; OptSmallDlg.Width := 360;
+  OptSmallDlg.Left := 12; OptSmallDlg.Top := 34;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptSmallDlg.Width := 360;
+  {$ELSE}
+  OptSmallDlg.Width := 300;
+  {$ENDIF}
   OptSmallDlg.Caption := '&Small dialog (show simplified dialog form)';
 
-  OptOnTop := TCheckBox.Create(Self); OptOnTop.Parent := GroupGeneral;
-  OptOnTop.Left := 8; OptOnTop.Top := 62; OptOnTop.Width := 360;
-  OptOnTop.Caption := 'Always stay &on top';
-
   OptStatus := TCheckBox.Create(Self); OptStatus.Parent := GroupGeneral;
-  OptStatus.Left := 8; OptStatus.Top := 84; OptStatus.Width := 360;
+  OptStatus.Left := 12; OptStatus.Top := 52;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptStatus.Width := 360;
+  {$ELSE}
+  OptStatus.Width := 300;
+  {$ENDIF}
   OptStatus.Caption := 'S&how error status';
 
+  OptOnTop := TCheckBox.Create(Self); OptOnTop.Parent := GroupGeneral;
+  OptOnTop.Left := 12; OptOnTop.Top := 70;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptOnTop.Width := 360;
+  {$ELSE}
+  OptOnTop.Width := 300;
+  {$ENDIF}
+  OptOnTop.Caption := 'Always stay &on top';
+
   GroupCopy := TGroupBox.Create(Self); GroupCopy.Parent := TabInt;
-  GroupCopy.Left := 8; GroupCopy.Top := 108; GroupCopy.Width := 380;
-  GroupCopy.Height := 76; GroupCopy.Caption := ' ''Copy'' button behaviour ';
+  GroupCopy.Left := 8; GroupCopy.Top := 104;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  GroupCopy.Width := 380;
+  {$ELSE}
+  GroupCopy.Width := 340;
+  {$ENDIF}
+  GroupCopy.Height := 58; GroupCopy.Caption := ' ''Copy'' button behaviour ';
 
   OptCopyMode0 := TRadioButton.Create(Self); OptCopyMode0.Parent := GroupCopy;
-  OptCopyMode0.Left := 8; OptCopyMode0.Top := 18; OptCopyMode0.Width := 360;
+  OptCopyMode0.Left := 12; OptCopyMode0.Top := 16;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptCopyMode0.Width := 200;
+  {$ELSE}
+  OptCopyMode0.Width := 175;
+  {$ENDIF}
   OptCopyMode0.Caption := 'Copy result into &edit field';
 
   OptCopyMode1 := TRadioButton.Create(Self); OptCopyMode1.Parent := GroupCopy;
-  OptCopyMode1.Left := 8; OptCopyMode1.Top := 40; OptCopyMode1.Width := 360;
+  OptCopyMode1.Left := 12; OptCopyMode1.Top := 34;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptCopyMode1.Width := 200;
+  {$ELSE}
+  OptCopyMode1.Width := 175;
+  {$ENDIF}
   OptCopyMode1.Caption := 'Copy result to &clipboard';
 
   OptCopyAsIs := TCheckBox.Create(Self); OptCopyAsIs.Parent := GroupCopy;
-  OptCopyAsIs.Left := 8; OptCopyAsIs.Top := 62; OptCopyAsIs.Width := 360;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptCopyAsIs.Left := 230;
+  {$ELSE}
+  OptCopyAsIs.Left := 190;
+  {$ENDIF}
+  OptCopyAsIs.Top := 16;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptCopyAsIs.Width := 130;
+  {$ELSE}
+  OptCopyAsIs.Width := 113;
+  {$ENDIF}
   OptCopyAsIs.Caption := 'Cop&y as is';
 
   GroupDisplay := TGroupBox.Create(Self); GroupDisplay.Parent := TabInt;
-  GroupDisplay.Left := 8; GroupDisplay.Top := 192; GroupDisplay.Width := 380;
-  GroupDisplay.Height := 64; GroupDisplay.Caption := ' Results display ';
-
-  LabelPrec := TLabel.Create(Self); LabelPrec.Parent := GroupDisplay;
-  LabelPrec.Left := 8; LabelPrec.Top := 22;
-  LabelPrec.Caption := '&Digits after decimal point in dec/exp results';
-
-  OptPrec := TEdit.Create(Self); OptPrec.Parent := GroupDisplay;
-  OptPrec.Left := 300; OptPrec.Top := 18; OptPrec.Width := 40;
-  OptPrec.Text := '17';
+  GroupDisplay.Left := 8; GroupDisplay.Top := 168;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  GroupDisplay.Width := 380;
+  {$ELSE}
+  GroupDisplay.Width := 340;
+  {$ENDIF}
+  GroupDisplay.Height := 100; GroupDisplay.Caption := ' Results display ';
 
   OptRAlign := TCheckBox.Create(Self); OptRAlign.Parent := GroupDisplay;
-  OptRAlign.Left := 8; OptRAlign.Top := 44; OptRAlign.Width := 190;
+  OptRAlign.Left := 12; OptRAlign.Top := 16;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptRAlign.Width := 360;
+  {$ELSE}
+  OptRAlign.Width := 300;
+  {$ENDIF}
   OptRAlign.Caption := 'Show results &right aligned';
 
   OptNoLead0 := TCheckBox.Create(Self); OptNoLead0.Parent := GroupDisplay;
-  OptNoLead0.Left := 200; OptNoLead0.Top := 44; OptNoLead0.Width := 180;
-  OptNoLead0.Caption := 'hex/bin/oct without &leading zeros';
+  OptNoLead0.Left := 12; OptNoLead0.Top := 34;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptNoLead0.Width := 360;
+  {$ELSE}
+  OptNoLead0.Width := 300;
+  {$ENDIF}
+  OptNoLead0.Caption := 'Show hex/bin/oct results without &leading zeros';
 
   OptNoTrail0 := TCheckBox.Create(Self); OptNoTrail0.Parent := GroupDisplay;
-  OptNoTrail0.Left := 8; OptNoTrail0.Top := 66; OptNoTrail0.Width := 360;
+  OptNoTrail0.Left := 12; OptNoTrail0.Top := 52;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptNoTrail0.Width := 360;
+  {$ELSE}
+  OptNoTrail0.Width := 300;
+  {$ENDIF}
   OptNoTrail0.Caption := 'Show decimal result without &trailing zeros';
+
+  OptPrec := TEdit.Create(Self); OptPrec.Parent := GroupDisplay;
+  OptPrec.Left := 12; OptPrec.Top := 72; OptPrec.Width := 25;
+  OptPrec.Text := '17';
+
+  LabelPrec := TLabel.Create(Self); LabelPrec.Parent := GroupDisplay;
+  LabelPrec.Left := 42; LabelPrec.Top := 74;
+  LabelPrec.Caption := '&Digits after decimal point in dec/exp results';
 
   { -------- Definitions tab -------- }
   TabDefs := PageControl.AddTabSheet;
@@ -159,17 +267,18 @@ begin
 
   { -------- buttons -------- }
   BtnOK := TButton.Create(Self); BtnOK.Parent := Self;
-  BtnOK.Left := 240; BtnOK.Top := 280; BtnOK.Width := 80;
+  BtnOK.Left := 192; BtnOK.Top := 316; BtnOK.Width := 75;
   BtnOK.Caption := 'OK'; BtnOK.Default := True;
   BtnOK.OnClick := @BtnOKClick;
 
   BtnCancel := TButton.Create(Self); BtnCancel.Parent := Self;
-  BtnCancel.Left := 330; BtnCancel.Top := 280; BtnCancel.Width := 80;
+  BtnCancel.Left := 273; BtnCancel.Top := 316; BtnCancel.Width := 75;
   BtnCancel.Caption := 'Cancel'; BtnCancel.ModalResult := mrCancel;
   BtnCancel.OnClick := @BtnCancelClick;
 
   B := TButton.Create(Self); B.Parent := Self;
-  B.Left := 240; B.Top := 320; B.Width := 80; B.Visible := False;
+  B.Left := 354; B.Top := 316; B.Width := 75; B.Visible := False;
+  B.Caption := 'Help';
   B.Free; // placeholder removed
 end;
 
