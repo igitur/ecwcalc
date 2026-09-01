@@ -1,0 +1,198 @@
+object CalcForm: TCalcForm
+  Caption = 'Calculator'
+  ClientHeight = 236
+  ClientWidth = 436
+  Font.Height = -11
+  Font.Name = 'MS Sans Serif'
+  KeyPreview = True
+  Position = poScreenCenter
+  object LabelExpression: TLabel
+    Left = 14
+    Top = 12
+    Height = 17
+    Caption = 'E&xpression:'
+  end
+  object EditInput: TComboBox
+    Left = 14
+    Top = 28
+    Width = 340
+    Height = 25
+    DropDownCount = 11
+    OnChange = EditInputChange
+  end
+  object ButtonEval: TButton
+    Left = 370
+    Top = 26
+    Width = 60
+    Height = 25
+    AutoSize = False
+    Caption = 'E&valuate'
+    OnClick = ButtonEvalClick
+  end
+  object BevelTop: TBevel
+    Left = 6
+    Top = 49
+    Width = 356
+    Height = 9
+    Shape = bsBottomLine
+  end
+  object LabelCopyAs: TLabel
+    Left = 14
+    Top = 64
+    Height = 17
+    Caption = 'Copy as:'
+  end
+  object RadioDec: TRadioButton
+    Left = 16
+    Top = 81
+    Height = 23
+    Caption = '&Dec'
+    Checked = True
+    OnMouseDown = RadioMouseDown
+  end
+  object RadioHex: TRadioButton
+    Left = 16
+    Top = 101
+    Height = 23
+    Caption = '&Hex'
+    OnMouseDown = RadioMouseDown
+  end
+  object RadioBin: TRadioButton
+    Left = 16
+    Top = 121
+    Height = 23
+    Caption = '&Bin'
+    OnMouseDown = RadioMouseDown
+  end
+  object RadioOct: TRadioButton
+    Left = 16
+    Top = 141
+    Height = 23
+    Caption = '&Oct'
+    OnMouseDown = RadioMouseDown
+  end
+  object RadioExp: TRadioButton
+    Left = 16
+    Top = 161
+    Height = 23
+    Caption = '&Exp'
+    OnMouseDown = RadioMouseDown
+  end
+  object LabelResDec: TEdit
+    Left = 68
+    Top = 82
+    Width = 289
+    Height = 23
+    Font.Height = -12
+    Font.Name = 'Courier New'
+    ParentColor = True
+    BorderStyle = bsNone
+    ReadOnly = True
+    Text = '0'
+  end
+  object LabelResHex: TEdit
+    Left = 68
+    Top = 102
+    Width = 289
+    Height = 23
+    Font.Height = -12
+    Font.Name = 'Courier New'
+    ParentColor = True
+    BorderStyle = bsNone
+    ReadOnly = True
+    Text = '00000000'
+  end
+  object LabelResBin: TEdit
+    Left = 68
+    Top = 122
+    Width = 289
+    Height = 23
+    Font.Height = -12
+    Font.Name = 'Courier New'
+    ParentColor = True
+    BorderStyle = bsNone
+    ReadOnly = True
+    Text = '00000000000000000000000000000000'
+  end
+  object LabelResOct: TEdit
+    Left = 68
+    Top = 142
+    Width = 289
+    Height = 23
+    Font.Height = -12
+    Font.Name = 'Courier New'
+    ParentColor = True
+    BorderStyle = bsNone
+    ReadOnly = True
+    Text = '00000000000'
+  end
+  object LabelResExp: TEdit
+    Left = 68
+    Top = 162
+    Width = 289
+    Height = 23
+    Font.Height = -12
+    Font.Name = 'Courier New'
+    ParentColor = True
+    BorderStyle = bsNone
+    ReadOnly = True
+    Text = '0.00000000000000000E+0000'
+  end
+  object ButtonCopy: TButton
+    Left = 370
+    Top = 56
+    Width = 60
+    Height = 25
+    AutoSize = False
+    Caption = '&Copy'
+    OnClick = ButtonCopyClick
+  end
+  object ButtonSetup: TButton
+    Left = 370
+    Top = 86
+    Width = 60
+    Height = 25
+    AutoSize = False
+    Caption = '&Setup...'
+    OnClick = ButtonSetupClick
+  end
+  object ButtonHelp: TButton
+    Left = 370
+    Top = 116
+    Width = 60
+    Height = 25
+    AutoSize = False
+    Caption = 'Help'
+    OnClick = ButtonHelpClick
+  end
+  object ButtonClose: TButton
+    Left = 370
+    Top = 146
+    Width = 60
+    Height = 25
+    AutoSize = False
+    Caption = 'Close'
+    OnClick = ButtonCloseClick
+  end
+  object BevelBottom: TBevel
+    Left = 6
+    Top = 176
+    Width = 356
+    Height = 9
+    Shape = bsBottomLine
+  end
+  object LabelErrorCaption: TLabel
+    Left = 14
+    Top = 191
+    Height = 17
+    Caption = 'Error status:'
+  end
+  object LabelResError: TLabel
+    Left = 14
+    Top = 207
+    Width = 340
+    Height = 17
+    AutoSize = False
+    Caption = 'ok'
+  end
+end

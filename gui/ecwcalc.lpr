@@ -41,7 +41,7 @@ end;
 {$ENDIF}
 
 begin
-  RequireDerivedFormResource := False;
+  RequireDerivedFormResource := True;
   Application.Scaled := True;
   Application.Initialize;
   InitEngine;

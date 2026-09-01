@@ -2,10 +2,8 @@
 <CONFIG>
   <ProjectOptions>
     <Version Value="12"/>
-    <PathDelim Value="/"/>
     <General>
       <Flags>
-        <MainUnitHasCreateFormStatements Value="True"/>
         <MainUnitHasTitleStatement Value="False"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
@@ -13,8 +11,8 @@
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
     </General>
-    <BuildModes Count="1">
-      <Item1 Name="Default" Default="True"/>
+    <BuildModes>
+      <Item Name="Default" Default="True"/>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
@@ -23,52 +21,53 @@
     <RunParams>
       <FormatVersion Value="2"/>
     </RunParams>
-    <RequiredPackages Count="1">
-      <Item1>
+    <RequiredPackages>
+      <Item>
         <PackageName Value="LCL"/>
-      </Item1>
+      </Item>
     </RequiredPackages>
-    <Units Count="7">
-      <Unit0>
+    <Units>
+      <Unit>
         <Filename Value="ecwcalc.lpr"/>
         <IsPartOfProject Value="True"/>
-      </Unit0>
-      <Unit1>
+      </Unit>
+      <Unit>
         <Filename Value="mainform.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="CalcForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-      </Unit1>
-      <Unit2>
+      </Unit>
+      <Unit>
         <Filename Value="cfgform.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="CfgForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-      </Unit2>
-      <Unit3>
+      </Unit>
+      <Unit>
         <Filename Value="defform.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="DefForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-      </Unit3>
-      <Unit4>
+      </Unit>
+      <Unit>
         <Filename Value="tinyform.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="TinyForm"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-      </Unit4>
-      <Unit5>
+      </Unit>
+      <Unit>
         <Filename Value="config.pas"/>
         <IsPartOfProject Value="True"/>
-      </Unit5>
-      <Unit6>
+        <UnitName Value="Config"/>
+      </Unit>
+      <Unit>
         <Filename Value="ecwengine.pas"/>
         <IsPartOfProject Value="True"/>
-      </Unit6>
+      </Unit>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -77,13 +76,11 @@
       <Filename Value="ecwcalc"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value=""/>
       <OtherUnitFiles Value=".;/tmp/ecw_fpc"/>
       <UnitOutputDirectory Value="lib"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <Mode Value="ObjFPC"/>
         <SyntaxMode Value="Delphi"/>
       </SyntaxOptions>
     </Parsing>
@@ -92,8 +89,10 @@
         <OptimizationLevel Value="3"/>
       </Optimizations>
     </CodeGeneration>
+    <Linking>
+      <Debugging>
+        <DebugInfoType Value="dsDwarf3"/>
+      </Debugging>
+    </Linking>
   </CompilerOptions>
-  <Debugging>
-    <Exceptions Count="0"/>
-  </Debugging>
 </CONFIG>

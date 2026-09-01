@@ -7,3 +7,7 @@ ecwcalc
 gui/lib/
 gui/ecwcalc.ini
 *.exe
+
+# IDE session / backup files
+*.lps
+gui/backup/
