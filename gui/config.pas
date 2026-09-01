@@ -20,6 +20,9 @@ type
     NoTrail0: Boolean;        // decimal without trailing zeros
     UnsignedHex: Boolean;
     SepMode: Integer;         // 0: '.' ',', 1: ',' ';', 2: '.' ';'
+    HistUpdC: Boolean;        // update history on Copy command
+    HistUpdE: Boolean;        // update history on Evaluate command
+    AllowMul: Boolean;        // allow multiple program instances
     Loaded: Boolean;
   end;
 
@@ -55,6 +58,9 @@ begin
     cfg.NoTrail0 := ini.ReadBool('Main', 'NoTrail0', False);
     cfg.UnsignedHex := ini.ReadBool('Main', 'UnsignedHex', False);
     cfg.SepMode := ini.ReadInteger('Main', 'SepMode', 0);
+    cfg.HistUpdC := ini.ReadBool('Main', 'HistUpdC', True);
+    cfg.HistUpdE := ini.ReadBool('Main', 'HistUpdE', True);
+    cfg.AllowMul := ini.ReadBool('Main', 'AllowMul', False);
   finally
     ini.Free;
   end;
@@ -80,6 +86,9 @@ begin
     ini.WriteBool('Main', 'NoTrail0', cfg.NoTrail0);
     ini.WriteBool('Main', 'UnsignedHex', cfg.UnsignedHex);
     ini.WriteInteger('Main', 'SepMode', cfg.SepMode);
+    ini.WriteBool('Main', 'HistUpdC', cfg.HistUpdC);
+    ini.WriteBool('Main', 'HistUpdE', cfg.HistUpdE);
+    ini.WriteBool('Main', 'AllowMul', cfg.AllowMul);
   finally
     ini.Free;
   end;

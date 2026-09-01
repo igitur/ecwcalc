@@ -12,7 +12,7 @@ type
   TCfgForm = class(TForm)
   private
     PageControl: TPageControl;
-    TabInt, TabDefs: TTabSheet;
+    TabInt, TabDefs, TabCalc, TabMisc: TTabSheet;
     // interface tab
     GroupGeneral, GroupCopy, GroupDisplay: TGroupBox;
     OptAutoCalc, OptSmallDlg, OptOnTop, OptStatus: TCheckBox;
@@ -24,7 +24,16 @@ type
     BtnOK, BtnCancel: TButton;
     // definitions tab
     DefList: TListView;
-    BtnAdd, BtnEdit, BtnDelete: TButton;
+    BtnAdd, BtnEdit, BtnDelete, BtnUp, BtnDown: TButton;
+    // calculations tab
+    GroupSep, GroupConst: TGroupBox;
+    OptSep0, OptSep1, OptSep2: TRadioButton;
+    OptUnsHex: TCheckBox;
+    LblSep1, LblSep3, LblConst1: TLabel;
+    // miscellaneous tab
+    GroupHist, GroupAppear: TGroupBox;
+    OptHistUpdC, OptHistUpdE, OptAllowMul: TCheckBox;
+    BtnHistClr: TButton;
     procedure BuildControls;
     procedure LoadCfg;
     procedure SaveCfg;
@@ -34,9 +43,13 @@ type
     procedure BtnAddClick(Sender: TObject);
     procedure BtnEditClick(Sender: TObject);
     procedure BtnDeleteClick(Sender: TObject);
+    procedure BtnUpClick(Sender: TObject);
+    procedure BtnDownClick(Sender: TObject);
+    procedure BtnHistClrClick(Sender: TObject);
     procedure DefListDblClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
   public
+    OnClearHistory: TNotifyEvent;
     constructor Create(AOwner: TComponent); override;
   end;
 
@@ -74,22 +87,37 @@ begin
     Bmp.Free;
   end;
   if Off > 0 then begin
-    OptAutoCalc.Top := 16 - Off;
-    OptSmallDlg.Top := 34 - Off;
-    OptStatus.Top   := 52 - Off;
-    OptOnTop.Top    := 70 - Off;
+    OptAutoCalc.Top := OptAutoCalc.Top - Off;
+    OptSmallDlg.Top := OptSmallDlg.Top - Off;
+    OptStatus.Top   := OptStatus.Top - Off;
+    OptOnTop.Top    := OptOnTop.Top - Off;
   end;
   if Off > 0 then begin
-    OptCopyMode0.Top := 16 - Off;
-    OptCopyMode1.Top := 34 - Off;
-    OptCopyAsIs.Top  := 16 - Off;
+    OptCopyMode0.Top := OptCopyMode0.Top - Off;
+    OptCopyMode1.Top := OptCopyMode1.Top - Off;
+    OptCopyAsIs.Top  := OptCopyAsIs.Top - Off;
   end;
   if Off > 0 then begin
-    OptRAlign.Top   := 16 - Off;
-    OptNoLead0.Top  := 34 - Off;
-    OptNoTrail0.Top := 52 - Off;
-    OptPrec.Top     := 72 - Off;
-    LabelPrec.Top   := 74 - Off;
+    OptRAlign.Top   := OptRAlign.Top - Off;
+    OptNoLead0.Top  := OptNoLead0.Top - Off;
+    OptNoTrail0.Top := OptNoTrail0.Top - Off;
+    OptPrec.Top     := OptPrec.Top - Off;
+    LabelPrec.Top   := LabelPrec.Top - Off;
+  end;
+  if Off > 0 then begin
+    LblSep1.Top    := LblSep1.Top - Off;
+    LblSep3.Top    := LblSep3.Top - Off;
+    OptSep0.Top    := OptSep0.Top - Off;
+    OptSep1.Top    := OptSep1.Top - Off;
+    OptSep2.Top    := OptSep2.Top - Off;
+    LblConst1.Top  := LblConst1.Top - Off;
+    OptUnsHex.Top  := OptUnsHex.Top - Off;
+  end;
+  if Off > 0 then begin
+    OptHistUpdC.Top := OptHistUpdC.Top - Off;
+    OptHistUpdE.Top := OptHistUpdE.Top - Off;
+    BtnHistClr.Top  := BtnHistClr.Top - Off;
+    OptAllowMul.Top := OptAllowMul.Top - Off;
   end;
 end;
 
@@ -240,30 +268,144 @@ begin
   TabDefs.Caption := 'User variables/functions';
 
   DefList := TListView.Create(Self); DefList.Parent := TabDefs;
-  DefList.Left := 8; DefList.Top := 8; DefList.Width := 290;
-  DefList.Height := 220;
+  DefList.Left := 8; DefList.Top := 8; DefList.Width := 450;
+  DefList.Height := 232;
   DefList.ViewStyle := vsReport;
   DefList.Columns.Add.Caption := 'Declaration';
   DefList.Columns.Add.Caption := 'Expression';
-  DefList.Columns[0].Width := 110;
-  DefList.Columns[1].Width := 170;
+  DefList.Columns[0].Width := 180;
+  DefList.Columns[1].Width := 260;
   DefList.ReadOnly := True; DefList.RowSelect := True;
   DefList.OnDblClick := @DefListDblClick;
 
   BtnAdd := TButton.Create(Self); BtnAdd.Parent := TabDefs;
-  BtnAdd.Left := 306; BtnAdd.Top := 8; BtnAdd.Width := 90;
+  BtnAdd.Left := 8; BtnAdd.Top := 247; BtnAdd.Width := 75;
   BtnAdd.Caption := '&Add...';
   BtnAdd.OnClick := @BtnAddClick;
 
   BtnEdit := TButton.Create(Self); BtnEdit.Parent := TabDefs;
-  BtnEdit.Left := 306; BtnEdit.Top := 40; BtnEdit.Width := 90;
-  BtnEdit.Caption := '&Edit';
+  BtnEdit.Left := 89; BtnEdit.Top := 247; BtnEdit.Width := 75;
+  BtnEdit.Caption := '&Edit...';
   BtnEdit.OnClick := @BtnEditClick;
 
   BtnDelete := TButton.Create(Self); BtnDelete.Parent := TabDefs;
-  BtnDelete.Left := 306; BtnDelete.Top := 72; BtnDelete.Width := 90;
+  BtnDelete.Left := 170; BtnDelete.Top := 247; BtnDelete.Width := 75;
   BtnDelete.Caption := '&Delete';
   BtnDelete.OnClick := @BtnDeleteClick;
+
+  BtnUp := TButton.Create(Self); BtnUp.Parent := TabDefs;
+  BtnUp.Left := 251; BtnUp.Top := 247; BtnUp.Width := 75;
+  BtnUp.Caption := 'Move &up';
+  BtnUp.OnClick := @BtnUpClick;
+
+  BtnDown := TButton.Create(Self); BtnDown.Parent := TabDefs;
+  BtnDown.Left := 332; BtnDown.Top := 247; BtnDown.Width := 75;
+  BtnDown.Caption := 'Move d&own';
+  BtnDown.OnClick := @BtnDownClick;
+
+  { -------- Calculations tab -------- }
+  TabCalc := PageControl.AddTabSheet;
+  TabCalc.Caption := 'Calculations';
+
+  GroupSep := TGroupBox.Create(Self); GroupSep.Parent := TabCalc;
+  GroupSep.Left := 8; GroupSep.Top := 8;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  GroupSep.Width := 400;
+  {$ELSE}
+  GroupSep.Width := 345;
+  {$ENDIF}
+  GroupSep.Height := 130; GroupSep.Caption := ' Separator characters ';
+
+  LblSep1 := TLabel.Create(Self); LblSep1.Parent := GroupSep;
+  LblSep1.Left := 12; LblSep1.Top := 12; LblSep1.Width := 325; LblSep1.Height := 30;
+  LblSep1.WordWrap := True; LblSep1.AutoSize := False;
+  LblSep1.Caption := 'This affects processing of fractional constants such as 0.1 and arguments of all list functions, e.g. log(a,x).';
+
+  LblSep3 := TLabel.Create(Self); LblSep3.Parent := GroupSep;
+  LblSep3.Left := 36; LblSep3.Top := 48; LblSep3.Width := 290; LblSep3.Height := 13;
+  LblSep3.Caption := 'Decimal separator    List separator';
+
+  OptSep0 := TRadioButton.Create(Self); OptSep0.Parent := GroupSep;
+  OptSep0.Left := 12; OptSep0.Top := 66; OptSep0.Width := 250;
+  OptSep0.Caption := '    .        ,    ';
+  OptSep1 := TRadioButton.Create(Self); OptSep1.Parent := GroupSep;
+  OptSep1.Left := 12; OptSep1.Top := 84; OptSep1.Width := 250;
+  OptSep1.Caption := '    ,        ;    ';
+  OptSep2 := TRadioButton.Create(Self); OptSep2.Parent := GroupSep;
+  OptSep2.Left := 12; OptSep2.Top := 102; OptSep2.Width := 250;
+  OptSep2.Caption := '    .        ;    ';
+
+  GroupConst := TGroupBox.Create(Self); GroupConst.Parent := TabCalc;
+  GroupConst.Left := 8; GroupConst.Top := 144;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  GroupConst.Width := 400;
+  {$ELSE}
+  GroupConst.Width := 345;
+  {$ENDIF}
+  GroupConst.Height := 76; GroupConst.Caption := ' Constants ';
+
+  LblConst1 := TLabel.Create(Self); LblConst1.Parent := GroupConst;
+  LblConst1.Left := 12; LblConst1.Top := 12; LblConst1.Width := 325; LblConst1.Height := 30;
+  LblConst1.WordWrap := True; LblConst1.AutoSize := False;
+  LblConst1.Caption := 'This affects interpretation of huge hexadecimal, binary and octal constants, e.g. 0xFFFF0000.';
+
+  OptUnsHex := TCheckBox.Create(Self); OptUnsHex.Parent := GroupConst;
+  OptUnsHex.Left := 12; OptUnsHex.Top := 50; OptUnsHex.Width := 325;
+  OptUnsHex.Caption := 'Always treat hex/bin/oct string as &unsigned number';
+
+  { -------- Miscellaneous tab -------- }
+  TabMisc := PageControl.AddTabSheet;
+  TabMisc.Caption := 'Miscellaneous';
+
+  GroupHist := TGroupBox.Create(Self); GroupHist.Parent := TabMisc;
+  GroupHist.Left := 8; GroupHist.Top := 8;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  GroupHist.Width := 330;
+  {$ELSE}
+  GroupHist.Width := 280;
+  {$ENDIF}
+  GroupHist.Height := 92; GroupHist.Caption := ' Input history ';
+
+  OptHistUpdC := TCheckBox.Create(Self); OptHistUpdC.Parent := GroupHist;
+  OptHistUpdC.Left := 12; OptHistUpdC.Top := 18;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptHistUpdC.Width := 290;
+  {$ELSE}
+  OptHistUpdC.Width := 240;
+  {$ENDIF}
+  OptHistUpdC.Caption := 'Update history on &Copy command';
+
+  OptHistUpdE := TCheckBox.Create(Self); OptHistUpdE.Parent := GroupHist;
+  OptHistUpdE.Left := 12; OptHistUpdE.Top := 36;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptHistUpdE.Width := 290;
+  {$ELSE}
+  OptHistUpdE.Width := 240;
+  {$ENDIF}
+  OptHistUpdE.Caption := 'Update history on &Evaluate command';
+
+  BtnHistClr := TButton.Create(Self); BtnHistClr.Parent := GroupHist;
+  BtnHistClr.Left := 12; BtnHistClr.Top := 58; BtnHistClr.Width := 111;
+  BtnHistClr.Caption := 'Clear &history';
+  BtnHistClr.OnClick := @BtnHistClrClick;
+
+  GroupAppear := TGroupBox.Create(Self); GroupAppear.Parent := TabMisc;
+  GroupAppear.Left := 8; GroupAppear.Top := 108;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  GroupAppear.Width := 330;
+  {$ELSE}
+  GroupAppear.Width := 280;
+  {$ENDIF}
+  GroupAppear.Height := 45; GroupAppear.Caption := ' Appearance ';
+
+  OptAllowMul := TCheckBox.Create(Self); OptAllowMul.Parent := GroupAppear;
+  OptAllowMul.Left := 12; OptAllowMul.Top := 18;
+  {$IF DEFINED(LCLGTK2) OR DEFINED(LCLGTK3)}
+  OptAllowMul.Width := 290;
+  {$ELSE}
+  OptAllowMul.Width := 240;
+  {$ENDIF}
+  OptAllowMul.Caption := '&Allow multiple program instances';
 
   { -------- buttons -------- }
   BtnOK := TButton.Create(Self); BtnOK.Parent := Self;
@@ -295,6 +437,15 @@ begin
   OptRAlign.Checked := cfg.RAlign;
   OptNoLead0.Checked := cfg.NoLead0;
   OptNoTrail0.Checked := cfg.NoTrail0;
+  case cfg.SepMode of
+    0: OptSep0.Checked := True;
+    1: OptSep1.Checked := True;
+    2: OptSep2.Checked := True;
+  end;
+  OptUnsHex.Checked := cfg.UnsignedHex;
+  OptHistUpdC.Checked := cfg.HistUpdC;
+  OptHistUpdE.Checked := cfg.HistUpdE;
+  OptAllowMul.Checked := cfg.AllowMul;
   RefreshDefs;
 end;
 
@@ -310,6 +461,13 @@ begin
   cfg.RAlign := OptRAlign.Checked;
   cfg.NoLead0 := OptNoLead0.Checked;
   cfg.NoTrail0 := OptNoTrail0.Checked;
+  if OptSep0.Checked then cfg.SepMode := 0
+  else if OptSep1.Checked then cfg.SepMode := 1
+  else cfg.SepMode := 2;
+  cfg.UnsignedHex := OptUnsHex.Checked;
+  cfg.HistUpdC := OptHistUpdC.Checked;
+  cfg.HistUpdE := OptHistUpdE.Checked;
+  cfg.AllowMul := OptAllowMul.Checked;
 end;
 
 procedure TCfgForm.RefreshDefs;
@@ -398,6 +556,33 @@ end;
 procedure TCfgForm.DefListDblClick(Sender: TObject);
 begin
   BtnEditClick(Sender);
+end;
+
+procedure TCfgForm.BtnUpClick(Sender: TObject);
+var
+  idx: Integer;
+begin
+  idx := DefList.Selected.Index;
+  if (idx <= 0) or (idx >= NumDefs) then Exit;
+  MoveDef(idx, -1);
+  RefreshDefs;
+  DefList.Selected := DefList.Items[idx - 1];
+end;
+
+procedure TCfgForm.BtnDownClick(Sender: TObject);
+var
+  idx: Integer;
+begin
+  idx := DefList.Selected.Index;
+  if (idx < 0) or (idx >= NumDefs - 1) then Exit;
+  MoveDef(idx, 1);
+  RefreshDefs;
+  DefList.Selected := DefList.Items[idx + 1];
+end;
+
+procedure TCfgForm.BtnHistClrClick(Sender: TObject);
+begin
+  if Assigned(OnClearHistory) then OnClearHistory(Self);
 end;
 
 end.

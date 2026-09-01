@@ -38,6 +38,7 @@ function  DefName(i: Integer): string;
 function  DefIsFunc(i: Integer): Boolean;
 function  DefDecl(i: Integer): string;             // "name(args)=body" / "name=value"
 procedure DeleteDef(i: Integer);
+procedure MoveDef(i: Integer; Dir: Integer);
 procedure ClearDefs;
 
 implementation
@@ -1190,6 +1191,17 @@ begin
   if (i < 0) or (i >= DefCount) then Exit;
   for j := i to DefCount - 2 do Defs[j] := Defs[j + 1];
   Dec(DefCount);
+end;
+
+procedure MoveDef(i: Integer; Dir: Integer);
+var
+  k: Integer;
+  Tmp: TUserDef;
+begin
+  if (i < 0) or (i >= DefCount) then Exit;
+  k := i + Dir;
+  if (k < 0) or (k >= DefCount) then Exit;
+  Tmp := Defs[i]; Defs[i] := Defs[k]; Defs[k] := Tmp;
 end;
 
 procedure ClearDefs;

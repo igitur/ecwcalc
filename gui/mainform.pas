@@ -31,6 +31,7 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     procedure UpdateDefsList;
+    procedure ClearHistory(Sender: TObject);
     property ResDec: TEdit read LabelResDec;
     property ResHex: TEdit read LabelResHex;
     property ResBin: TEdit read LabelResBin;
@@ -218,17 +219,20 @@ begin
   LabelResOct.Text := FmtOct32(v);
   LabelResExp.Text := FmtExp(v);
   LabelResError.Caption := 'ok';
-
-  // remember history (most recent first, max 11)
-  if EditInput.Items.IndexOf(s) < 0 then
-    EditInput.Items.Insert(0, s);
-  while EditInput.Items.Count > 11 do
-    EditInput.Items.Delete(EditInput.Items.Count - 1);
 end;
 
 procedure TCalcForm.ButtonEvalClick(Sender: TObject);
+var
+  s: string;
 begin
   DoEval;
+  if cfg.HistUpdE then begin
+    s := Trim(EditInput.Text);
+    if (s <> '') and (EditInput.Items.IndexOf(s) < 0) then
+      EditInput.Items.Insert(0, s);
+    while EditInput.Items.Count > 11 do
+      EditInput.Items.Delete(EditInput.Items.Count - 1);
+  end;
 end;
 
 procedure TCalcForm.EditInputChange(Sender: TObject);
@@ -238,7 +242,7 @@ end;
 
 procedure TCalcForm.ButtonCopyClick(Sender: TObject);
 var
-  t: string;
+  t, s: string;
 begin
   case SelectedFormat of
     'hex': t := LabelResHex.Text;
@@ -251,6 +255,13 @@ begin
     Clipboard.AsText := t
   else
     EditInput.Text := t;
+  if cfg.HistUpdC then begin
+    s := Trim(EditInput.Text);
+    if (s <> '') and (EditInput.Items.IndexOf(s) < 0) then
+      EditInput.Items.Insert(0, s);
+    while EditInput.Items.Count > 11 do
+      EditInput.Items.Delete(EditInput.Items.Count - 1);
+  end;
 end;
 
 procedure TCalcForm.RadioMouseDown(Sender: TObject; Button: TMouseButton;
@@ -269,8 +280,10 @@ end;
 
 procedure TCalcForm.ButtonSetupClick(Sender: TObject);
 begin
-  if CfgFrm = nil then
+  if CfgFrm = nil then begin
     Application.CreateForm(TCfgForm, CfgFrm);
+    CfgFrm.OnClearHistory := @ClearHistory;
+  end;
   CfgFrm.ShowModal;
 end;
 
@@ -292,6 +305,11 @@ end;
 procedure TCalcForm.UpdateDefsList;
 begin
   // the definitions tab refreshes itself when the config dialog opens
+end;
+
+procedure TCalcForm.ClearHistory(Sender: TObject);
+begin
+  EditInput.Items.Clear;
 end;
 
 end.
