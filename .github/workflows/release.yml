@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.suffix }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            suffix: linux-x64
+            exe: ''
+            tags: -tags gtk3
+          - os: windows-latest
+            suffix: windows-x64
+            exe: '.exe'
+            tags: ''
+          - os: macos-latest
+            suffix: macos-arm64
+            exe: ''
+            tags: ''
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install Linux build deps (IUP/GTK3)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev
+
+      - name: Build (release)
+        run: |
+          go build ${{ matrix.tags }} -ldflags="-s -w" -o dist/ecw-go-${{ matrix.suffix }}${{ matrix.exe }} ./cmd/ecw
+          CGO_ENABLED=1 go build ${{ matrix.tags }} -ldflags="-s -w" -o dist/ecw-go-gui-${{ matrix.suffix }}${{ matrix.exe }} ./gui
+
+      - name: Unit tests
+        run: go test .
+
+      - name: Smoke-test CLI
+        run: |
+          ./dist/ecw-go-${{ matrix.suffix }}${{ matrix.exe }} "2+3*4"
+          ./dist/ecw-go-${{ matrix.suffix }}${{ matrix.exe }} --unsigned "0xFFFFFFFF+1"
+          ./dist/ecw-go-${{ matrix.suffix }}${{ matrix.exe }} --sep=1 "1,5+2,5"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.suffix }}
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List staged binaries
+        run: ls -la dist/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

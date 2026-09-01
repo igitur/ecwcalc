@@ -1,8 +1,9 @@
 # build artifacts
 ecw
 ecwcalc
+dist/
 *.o
 *.ppu
 *.bak
-gui/lib/
 gui/ecwcalc.ini
+*.ini
