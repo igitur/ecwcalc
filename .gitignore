@@ -1,6 +1,7 @@
-# build artifacts
-ecw
-ecwcalc
+# build artifacts (repo-root binaries)
+/ecw
+/ecwcalc
+/ecw-gui
 dist/
 *.o
 *.ppu
