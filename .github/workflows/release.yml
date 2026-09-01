@@ -18,17 +18,21 @@ jobs:
         include:
           - suffix: linux-x64
             target: ''
+            laz: ''
             exe: ''
+            extra: ''
           - suffix: windows-x64
             target: '-Twin64 -Px86_64'
+            laz: '--os=win64 --cpu=x86_64 --ws=win32'
             exe: '.exe'
+            extra: 'fp-units-win-rtl-3.2.2 fp-units-win-fcl-3.2.2 fp-units-win-gfx-3.2.2 fp-units-win-net-3.2.2 fp-units-win-db-3.2.2 fp-units-win-misc-3.2.2'
     steps:
       - uses: actions/checkout@v4
 
       - name: Install FPC + Lazarus
         run: |
           sudo apt-get update
-          sudo apt-get install -y fpc lazarus fpc-source fp-units-win-rtl-3.2.2
+          sudo apt-get install -y fpc lazarus fpc-source ${{ matrix.extra }}
 
       - name: Build cross-compiler (windows only)
         if: matrix.suffix == 'windows-x64'
@@ -45,11 +49,12 @@ jobs:
           mkdir -p dist
           fpc -O2 -Xs ${{ matrix.target }} -odist/ecw-fpc-${{ matrix.suffix }}${{ matrix.exe }} ecw.pas
 
-      - name: Build GUI (linux only)
-        if: matrix.suffix == 'linux-x64'
+      - name: Build GUI (lazbuild)
         run: |
-          lazbuild --quiet gui/ecwcalc.lpi
-          cp gui/ecwcalc dist/ecw-fpc-gui-linux-x64
+          mkdir -p dist
+          lazbuild --quiet ${{ matrix.laz }} gui/ecwcalc.lpi
+          cp gui/ecwcalc${{ matrix.exe }} dist/ecw-fpc-gui-${{ matrix.suffix }}${{ matrix.exe }}
+          strip dist/ecw-fpc-gui-${{ matrix.suffix }}${{ matrix.exe }}
 
       - name: Battery (regression)
         if: matrix.suffix == 'linux-x64'

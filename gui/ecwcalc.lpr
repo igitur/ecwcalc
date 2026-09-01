@@ -1,6 +1,7 @@
 program ecwcalc;
 
 {$mode objfpc}{$H+}
+{$IFDEF WINDOWS}{$APPTYPE GUI}{$ENDIF}
 
 uses
   {$IFDEF UNIX}{$IFDEF UseCThreads}
