@@ -28,6 +28,15 @@ func fpc(expr string) string {
 }
 
 func TestBatteryVsFPC(t *testing.T) {
+	// Skip unless the FPC oracle is actually available: `go test .` runs
+	// this too, but only the dedicated battery step builds the oracle.
+	bin := os.Getenv("ECW_FPC_BIN")
+	if bin == "" {
+		bin = "/tmp/ecw_fpc/ecw"
+	}
+	if _, err := os.Stat(bin); err != nil {
+		t.Skipf("FPC oracle not found at %s (set ECW_FPC_BIN); skipping battery", bin)
+	}
 	exprs := []string{
 		// arithmetic
 		"2+3*4", "(1+2)*3", "2**10", "2**-2", "0**0", "10/4", "10//4", "10%4",
