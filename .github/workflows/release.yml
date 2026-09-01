@@ -43,9 +43,11 @@ jobs:
           sudo apt-get install -y libgtk-3-dev
 
       - name: Build (release)
+        env:
+          CGO_ENABLED: '1'
         run: |
           go build ${{ matrix.tags }} -ldflags="-s -w" -o dist/ecw-go-${{ matrix.suffix }}${{ matrix.exe }} ./cmd/ecw
-          CGO_ENABLED=1 go build ${{ matrix.tags }} -ldflags="-s -w" -o dist/ecw-go-gui-${{ matrix.suffix }}${{ matrix.exe }} ./gui
+          go build ${{ matrix.tags }} -ldflags="-s -w" -o dist/ecw-go-gui-${{ matrix.suffix }}${{ matrix.exe }} ./gui
 
       - name: Unit tests
         run: go test .

@@ -91,7 +91,15 @@ func trunc32(v float64) uint32 {
 	if math.IsNaN(v) || math.IsInf(v, 0) {
 		return 0
 	}
-	return uint32(int64(math.Trunc(v)))
+	t := math.Trunc(v)
+	// Out of int64 range: the original (x87) yields integer-indefinite
+	// (INT64_MIN, 0x8000000000000000); its low 32 bits are 0. Go's amd64
+	// CVTTSD2SI does the same, but arm64 FCVTZS saturates — make it
+	// explicit so all platforms match the original.
+	if t >= 9223372036854775808.0 || t < -9223372036854775808.0 {
+		return 0
+	}
+	return uint32(int64(t))
 }
 
 // FmtHex32 formats a value as 8 hex digits (32-bit).
