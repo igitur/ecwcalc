@@ -4,6 +4,7 @@ object CfgForm: TCfgForm
   ClientWidth = 436
   BorderStyle = bsDialog
   Position = poScreenCenter
+  OnShow = FormShow
   object PageControl: TPageControl
     Left = 6
     Top = 6

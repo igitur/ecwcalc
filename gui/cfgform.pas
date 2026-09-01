@@ -38,6 +38,7 @@ type
     procedure BtnDownClick(Sender: TObject);
     procedure BtnHistClrClick(Sender: TObject);
     procedure DefListDblClick(Sender: TObject);
+    procedure FormShow(Sender: TObject);
   private
     procedure LoadCfg;
     procedure SaveCfg;
@@ -57,6 +58,11 @@ implementation
 constructor TCfgForm.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+end;
+
+procedure TCfgForm.FormShow(Sender: TObject);
+begin
+  LoadCfg;
 end;
 
 procedure TCfgForm.LoadCfg;
