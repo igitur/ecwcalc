@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.suffix }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suffix: linux-x64
+            target: ''
+            exe: ''
+          - suffix: windows-x64
+            target: '-Twin64 -Px86_64'
+            exe: '.exe'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install FPC + Lazarus
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fpc lazarus fpc-source fp-units-win-rtl-3.2.2
+
+      - name: Build cross-compiler (windows only)
+        if: matrix.suffix == 'windows-x64'
+        run: |
+          cd /usr/share/fpcsrc/3.2.2/compiler
+          sudo make crossinstall OS_TARGET=win64 CPU_TARGET=x86_64
+
+      - name: Build CLI (release)
+        run: |
+          mkdir -p dist
+          fpc -O2 -Xs ${{ matrix.target }} -o dist/ecw-fpc-${{ matrix.suffix }}${{ matrix.exe }} ecw.pas
+
+      - name: Build GUI (linux only)
+        if: matrix.suffix == 'linux-x64'
+        run: |
+          lazbuild --quiet gui/ecwcalc.lpi
+          cp gui/ecwcalc dist/ecw-fpc-gui-linux-x64
+
+      - name: Battery (regression)
+        if: matrix.suffix == 'linux-x64'
+        run: python3 tests/battery.py dist/ecw-fpc-linux-x64
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.suffix }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List staged binaries
+        run: ls -la dist/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          overwrite_files: true
