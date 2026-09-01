@@ -47,7 +47,8 @@ jobs:
       - name: Build CLI (release)
         run: |
           mkdir -p dist
-          fpc -O2 -Xs ${{ matrix.target }} -odist/ecw-fpc-${{ matrix.suffix }}${{ matrix.exe }} ecw.pas
+          fpc -O2 -Xs ${{ matrix.target }} -FEdist -oecw-fpc-${{ matrix.suffix }}${{ matrix.exe }} ecw.pas
+          rm -f dist/*.o
 
       - name: Build GUI (lazbuild)
         run: |
