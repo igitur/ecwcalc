@@ -37,7 +37,7 @@ jobs:
       - name: Build cross-compiler (windows only)
         if: matrix.suffix == 'windows-x64'
         run: |
-          curl -sL --max-time 300 \
+          curl -sL --retry 5 --retry-all-errors --retry-delay 5 --max-time 900 \
             "https://sourceforge.net/projects/freepascal/files/Source/3.2.2/fpc-3.2.2.source.tar.gz/download" \
             -o /tmp/fpc-src.tar.gz
           tar xzf /tmp/fpc-src.tar.gz -C /tmp
