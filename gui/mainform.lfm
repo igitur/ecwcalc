@@ -2,8 +2,6 @@ object CalcForm: TCalcForm
   Caption = 'Calculator'
   ClientHeight = 236
   ClientWidth = 436
-  Font.Height = -11
-  Font.Name = 'MS Sans Serif'
   KeyPreview = True
   Position = poScreenCenter
   object LabelExpression: TLabel

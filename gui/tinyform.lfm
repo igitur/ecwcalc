@@ -2,8 +2,6 @@ object TinyForm: TTinyForm
   Caption = 'Calculator'
   ClientHeight = 50
   ClientWidth = 213
-  Font.Height = -11
-  Font.Name = 'MS Sans Serif'
   Position = poScreenCenter
   object EditOut: TEdit
     Left = 4
