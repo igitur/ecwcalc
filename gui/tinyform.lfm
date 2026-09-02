@@ -39,7 +39,7 @@ object TinyForm: TTinyForm
     Width = 16
     Height = 21
     AutoSize = False
-    Caption = #172
+    Caption = #8593
     Default = True
     TabOrder = 3
     OnClick = CopyClick
@@ -62,7 +62,7 @@ object TinyForm: TTinyForm
     Width = 16
     Height = 21
     AutoSize = False
-    Caption = #188
+    Caption = #8230
     Font.Style = [fsBold]
     TabOrder = 4
     OnClick = SetupClick
