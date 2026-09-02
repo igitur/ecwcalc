@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, StdCtrls, ExtCtrls, Clipbrd,
-  Dialogs, ecwengine, cfgform, defform, tinyform;
+  Dialogs, ecwengine, cfgform;
 
 type
   TCalcForm = class(TForm)
@@ -28,8 +28,12 @@ type
     LastClickTick: QWord;
     procedure DoEval;
     function  SelectedFormat: string;
+    procedure ShellClose(Sender: TObject; var CloseAction: TCloseAction);
+    procedure InputKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   public
     constructor Create(AOwner: TComponent); override;
+    procedure ApplyUiConfig;
+    function  Combo: TComboBox;
     procedure UpdateDefsList;
     procedure ClearHistory(Sender: TObject);
     property ResDec: TEdit read LabelResDec;
@@ -48,14 +52,53 @@ implementation
 
 {$R *.lfm}
 
-uses Config;   // global config record
+uses
+  Config,          // global config record
+  LCLType,
+  viewfmt,
+  shellswitch;
 
 constructor TCalcForm.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  EditInput.OnKeyDown := @InputKeyDown;
+  OnClose := @ShellClose;
+  ApplyUiConfig;
+end;
+
+procedure TCalcForm.ShellClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  Application.Terminate;
+end;
+
+{ ============ display options ============ }
+
+procedure TCalcForm.ApplyUiConfig;
+begin
+  if cfg.StayOnTop then FormStyle := fsStayOnTop else FormStyle := fsNormal;
+  ButtonEval.Enabled := not cfg.AutoCalc;
+  if cfg.RAlign then begin
+    LabelResDec.Alignment := taRightJustify;
+    LabelResHex.Alignment := taRightJustify;
+    LabelResBin.Alignment := taRightJustify;
+    LabelResOct.Alignment := taRightJustify;
+    LabelResExp.Alignment := taRightJustify;
+  end else begin
+    LabelResDec.Alignment := taLeftJustify;
+    LabelResHex.Alignment := taLeftJustify;
+    LabelResBin.Alignment := taLeftJustify;
+    LabelResOct.Alignment := taLeftJustify;
+    LabelResExp.Alignment := taLeftJustify;
+  end;
+  if Trim(EditInput.Text) <> '' then DoEval;
 end;
 
 { ============ behaviour ============ }
+
+function TCalcForm.Combo: TComboBox;
+begin
+  Result := EditInput;
+end;
 
 function TCalcForm.SelectedFormat: string;
 begin
@@ -83,11 +126,11 @@ begin
     if cfg.ShowErrorStatus then LabelResError.Caption := M else LabelResError.Caption := '';
     Exit;
   end;
-  LabelResDec.Text := FmtNumber(v);
-  LabelResHex.Text := FmtHex32(v);
-  LabelResBin.Text := FmtBin32(v);
-  LabelResOct.Text := FmtOct32(v);
-  LabelResExp.Text := FmtExp(v);
+  LabelResDec.Text := RowDec(v, cfg.Prec, cfg.NoTrail0);
+  LabelResHex.Text := RowHex32(v, cfg.NoLead0);
+  LabelResBin.Text := RowBin32(v, cfg.NoLead0);
+  LabelResOct.Text := RowOct32(v, cfg.NoLead0);
+  LabelResExp.Text := RowExp(v, cfg.Prec, cfg.NoTrail0);
   LabelResError.Caption := 'ok';
 end;
 
@@ -102,6 +145,15 @@ begin
       EditInput.Items.Insert(0, s);
     while EditInput.Items.Count > 11 do
       EditInput.Items.Delete(EditInput.Items.Count - 1);
+  end;
+end;
+
+procedure TCalcForm.InputKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key = VK_RETURN then begin
+    Key := 0;
+    ButtonEvalClick(Sender);   // Enter == Evaluate (works while it is disabled)
   end;
 end;
 
@@ -150,11 +202,11 @@ end;
 
 procedure TCalcForm.ButtonSetupClick(Sender: TObject);
 begin
-  if CfgFrm = nil then begin
+  if CfgFrm = nil then
     Application.CreateForm(TCfgForm, CfgFrm);
-    CfgFrm.OnClearHistory := @ClearHistory;
-  end;
-  CfgFrm.ShowModal;
+  CfgFrm.OnClearHistory := @ClearHistory;
+  if CfgFrm.ShowModal = mrOK then
+    AfterSetupClosed(Self);
 end;
 
 procedure TCalcForm.ButtonHelpClick(Sender: TObject);

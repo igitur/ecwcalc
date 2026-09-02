@@ -50,12 +50,14 @@ begin
     cfg.SmallDialog := ini.ReadBool('Main', 'SmallDialog', False);
     cfg.StayOnTop := ini.ReadBool('Main', 'StayOnTop', False);
     cfg.ShowErrorStatus := ini.ReadBool('Main', 'ShowErrorStatus', True);
-    cfg.CopyToClipboard := ini.ReadBool('Main', 'CopyToClipboard', True);
+    cfg.CopyToClipboard := ini.ReadBool('Main', 'CopyToClipboard', False);
     cfg.CopyAsIs := ini.ReadBool('Main', 'CopyAsIs', False);
     cfg.Prec := ini.ReadInteger('Main', 'Prec', 17);
+    if cfg.Prec < 0 then cfg.Prec := 0
+    else if cfg.Prec > 18 then cfg.Prec := 18;
     cfg.RAlign := ini.ReadBool('Main', 'RAlign', False);
     cfg.NoLead0 := ini.ReadBool('Main', 'NoLead0', False);
-    cfg.NoTrail0 := ini.ReadBool('Main', 'NoTrail0', False);
+    cfg.NoTrail0 := ini.ReadBool('Main', 'NoTrail0', True);
     cfg.UnsignedHex := ini.ReadBool('Main', 'UnsignedHex', False);
     cfg.SepMode := ini.ReadInteger('Main', 'SepMode', 0);
     cfg.HistUpdC := ini.ReadBool('Main', 'HistUpdC', True);

@@ -28,8 +28,11 @@ type
     FmtIdx: Integer;               // 0=dec 1=hex 2=bin 3=oct 4=exp
     procedure DoEval;
     procedure ShowResult;
+    procedure ShellClose(Sender: TObject; var CloseAction: TCloseAction);
   public
     constructor Create(AOwner: TComponent); override;
+    procedure ApplyUiConfig;
+    function  Combo: TComboBox;
     procedure ClearHistory(Sender: TObject);
   end;
 
@@ -40,14 +43,41 @@ implementation
 
 {$R *.lfm}
 
+uses
+  viewfmt,
+  shellswitch;
+
 constructor TTinyForm.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
+  OnClose := @ShellClose;
+  ApplyUiConfig;
+end;
+
+procedure TTinyForm.ShellClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  Application.Terminate;
 end;
 
 { Compact single-line calculator: input combo on top, result edit below.
   '=' evaluates, '#' cycles the display format, '¬' copies the result,
   '¼' opens the configuration dialog. }
+
+procedure TTinyForm.ApplyUiConfig;
+begin
+  if cfg.StayOnTop then FormStyle := fsStayOnTop else FormStyle := fsNormal;
+  ButtonEval.Enabled := not cfg.AutoCalc;
+  if cfg.RAlign then
+    EditOut.Alignment := taRightJustify
+  else
+    EditOut.Alignment := taLeftJustify;
+  if Trim(EditIn.Text) <> '' then DoEval;
+end;
+
+function TTinyForm.Combo: TComboBox;
+begin
+  Result := EditIn;
+end;
 
 procedure TTinyForm.DoEval;
 var
@@ -71,12 +101,12 @@ procedure TTinyForm.ShowResult;
 begin
   if not HaveVal then Exit;
   case FmtIdx of
-    1: EditOut.Text := FmtHex32(LastVal);
-    2: EditOut.Text := FmtBin32(LastVal);
-    3: EditOut.Text := FmtOct32(LastVal);
-    4: EditOut.Text := FmtExp(LastVal);
+    1: EditOut.Text := RowHex32(LastVal, cfg.NoLead0);
+    2: EditOut.Text := RowBin32(LastVal, cfg.NoLead0);
+    3: EditOut.Text := RowOct32(LastVal, cfg.NoLead0);
+    4: EditOut.Text := RowExp(LastVal, cfg.Prec, cfg.NoTrail0);
   else
-    EditOut.Text := FmtNumber(LastVal);
+    EditOut.Text := RowDec(LastVal, cfg.Prec, cfg.NoTrail0);
   end;
 end;
 
@@ -119,11 +149,11 @@ end;
 
 procedure TTinyForm.SetupClick(Sender: TObject);
 begin
-  if CfgFrm = nil then begin
+  if CfgFrm = nil then
     Application.CreateForm(TCfgForm, CfgFrm);
-    CfgFrm.OnClearHistory := @ClearHistory;
-  end;
-  CfgFrm.ShowModal;
+  CfgFrm.OnClearHistory := @ClearHistory;
+  if CfgFrm.ShowModal = mrOK then
+    AfterSetupClosed(Self);
 end;
 
 procedure TTinyForm.FmtClick(Sender: TObject);

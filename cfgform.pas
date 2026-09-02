@@ -43,6 +43,7 @@ type
     procedure LoadCfg;
     procedure SaveCfg;
     procedure RefreshDefs;
+    procedure OptCopyModeClick(Sender: TObject);
   public
     OnClearHistory: TNotifyEvent;
     constructor Create(AOwner: TComponent); override;
@@ -67,6 +68,8 @@ end;
 
 procedure TCfgForm.LoadCfg;
 begin
+  OptCopyMode0.OnClick := @OptCopyModeClick;
+  OptCopyMode1.OnClick := @OptCopyModeClick;
   OptAutoCalc.Checked := cfg.AutoCalc;
   OptSmallDlg.Checked := cfg.SmallDialog;
   OptOnTop.Checked := cfg.StayOnTop;
@@ -74,6 +77,7 @@ begin
   OptCopyMode1.Checked := cfg.CopyToClipboard;
   OptCopyMode0.Checked := not cfg.CopyToClipboard;
   OptCopyAsIs.Checked := cfg.CopyAsIs;
+  OptCopyAsIs.Enabled := OptCopyMode0.Checked;   // 'as is' only in edit-field mode
   OptPrec.Text := IntToStr(cfg.Prec);
   OptRAlign.Checked := cfg.RAlign;
   OptNoLead0.Checked := cfg.NoLead0;
@@ -99,6 +103,8 @@ begin
   cfg.CopyToClipboard := OptCopyMode1.Checked;
   cfg.CopyAsIs := OptCopyAsIs.Checked;
   cfg.Prec := StrToIntDef(OptPrec.Text, 17);
+  if cfg.Prec < 0 then cfg.Prec := 0
+  else if cfg.Prec > 18 then cfg.Prec := 18;
   cfg.RAlign := OptRAlign.Checked;
   cfg.NoLead0 := OptNoLead0.Checked;
   cfg.NoTrail0 := OptNoTrail0.Checked;
@@ -122,6 +128,12 @@ begin
     it.Caption := DefName(i);
     it.SubItems.Add(DefDecl(i));
   end;
+end;
+
+procedure TCfgForm.OptCopyModeClick(Sender: TObject);
+begin
+  // 'Copy as is' only applies in edit-field mode (oracle behaviour)
+  OptCopyAsIs.Enabled := OptCopyMode0.Checked;
 end;
 
 procedure TCfgForm.BtnOKClick(Sender: TObject);
