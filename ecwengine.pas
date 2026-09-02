@@ -54,10 +54,7 @@ implementation
   Reverse-engineered from ecw.exe (v1.04-era, Delphi 3 RTL) and verified
   live against the original console engine (ec.exe v1.03b3) under Wine.
 
-  Build:  fpc -O3 ecw.pas
-  Usage:  ./ecw "2+3*4"
-          ./ecw --unsigned "--sep=1" "1,5+2,5"
-          ./ecw                       (interactive, prompt '> ')
+  CLI front end: ./ecw.lpr  (build with ./build.sh cli)
   ============================================================================ }
 
 const

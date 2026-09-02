@@ -13,29 +13,46 @@ Wine** — 188/188 differential tests pass.
 
 | Path | Description |
 |---|---|
-| `ecw.pas` | Command-line front end (uses `ecwengine`) |
+| `ecwcalc.lpi` / `ecwcalc.lpr` | GUI Lazarus project (uses `ecwengine`) — faithful 4-form layout |
+| `ecw.lpi` / `ecw.lpr` | CLI Lazarus project (uses `ecwengine`) — no LCL dependency |
 | `ecwengine.pas` | The expression engine (parser, evaluator, formatter) — shared by CLI and GUI |
-| `gui/` | Lazarus LCL GUI — faithful reproduction of the original 4-form layout |
+| `build.sh` | `./build.sh` → GUI, `./build.sh cli` → CLI |
+| `Makefile` | Wraps `build.sh`: `make`, `make cli`, `make battery` |
+| `*.pas`/`*.lfm` | GUI forms (`mainform`, `cfgform`, `defform`, `tinyform`) and `Config` |
 
-## Build — command line
+## Build
 
-Requires Free Pascal 3.2+ (`fpc`).
+Requires Free Pascal 3.2+ (`fpc`) and Lazarus 3.x with LCL (GTK2 or Qt5
+widgetset).
 
 ```bash
-fpc -O3 ecw.pas
+./build.sh                     # GUI  -> ./ecwcalc
+./build.sh cli                 # CLI  -> ./ecw
+```
+
+The `Makefile` wraps the same commands: `make`/`make gui`, `make cli`, and
+`make battery` (regression suite).
+
+Or build each conventional project directly with lazbuild:
+
+```bash
+lazbuild ecwcalc.lpi           # GUI -> ./ecwcalc
+lazbuild ecw.lpi               # CLI -> ./ecw
+```
+
+### Command line
+
+```bash
 ./ecw "2+3*4"                        # 14
 ./ecw --unsigned "0xFFFFFFFF+1"      # 4294967296
 ./ecw --sep=1 "1,5+2,5"              # 4   (comma decimal / semicolon list)
 ./ecw                                # interactive, prompt '> '
 ```
 
-## Build — GUI
-
-Requires Lazarus 3.x with LCL (GTK2 or Qt5 widgetset).
+### GUI
 
 ```bash
-cd gui
-lazbuild ecwcalc.lpi                 # produces gui/ecwcalc
+./build.sh
 ./ecwcalc
 ```
 

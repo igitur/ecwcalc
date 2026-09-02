@@ -17,13 +17,13 @@ jobs:
       matrix:
         include:
           - suffix: linux-x64
-            target: ''
             laz: ''
+            clilaz: ''
             exe: ''
             extra: ''
           - suffix: windows-x64
-            target: '-Twin64 -Px86_64'
             laz: '--os=win64 --cpu=x86_64 --ws=win32'
+            clilaz: '--os=win64 --cpu=x86_64'
             exe: '.exe'
             extra: 'fp-units-win-rtl-3.2.2 fp-units-win-fcl-3.2.2 fp-units-win-gfx-3.2.2 fp-units-win-net-3.2.2 fp-units-win-db-3.2.2 fp-units-win-misc-3.2.2'
     steps:
@@ -47,14 +47,15 @@ jobs:
       - name: Build CLI (release)
         run: |
           mkdir -p dist
-          fpc -O2 -Xs ${{ matrix.target }} -FEdist -oecw-fpc-${{ matrix.suffix }}${{ matrix.exe }} ecw.pas
-          rm -f dist/*.o
+          ./build.sh cli --quiet ${{ matrix.clilaz }}
+          cp ecw${{ matrix.exe }} dist/ecw-fpc-${{ matrix.suffix }}${{ matrix.exe }}
+          strip dist/ecw-fpc-${{ matrix.suffix }}${{ matrix.exe }}
 
       - name: Build GUI (lazbuild)
         run: |
           mkdir -p dist
-          lazbuild --quiet ${{ matrix.laz }} gui/ecwcalc.lpi
-          cp gui/ecwcalc${{ matrix.exe }} dist/ecw-fpc-gui-${{ matrix.suffix }}${{ matrix.exe }}
+          ./build.sh gui --quiet ${{ matrix.laz }}
+          cp ecwcalc${{ matrix.exe }} dist/ecw-fpc-gui-${{ matrix.suffix }}${{ matrix.exe }}
           strip dist/ecw-fpc-gui-${{ matrix.suffix }}${{ matrix.exe }}
 
       - name: Battery (regression)

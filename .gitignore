@@ -1,13 +1,15 @@
 # build artifacts
-ecw
-ecwcalc
+/ecw
+/ecwcalc
+/lib/
+/lib-cli/
+/ecwcalc.ini
 *.o
 *.ppu
+*.compiled
 *.bak
-gui/lib/
-gui/ecwcalc.ini
 *.exe
 
 # IDE session / backup files
 *.lps
-gui/backup/
+/backup/

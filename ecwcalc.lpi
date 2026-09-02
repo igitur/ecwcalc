@@ -76,7 +76,7 @@
       <Filename Value="ecwcalc"/>
     </Target>
     <SearchPaths>
-      <OtherUnitFiles Value=".;/tmp/ecw_fpc"/>
+      <OtherUnitFiles Value="."/>
       <UnitOutputDirectory Value="lib"/>
     </SearchPaths>
     <Parsing>

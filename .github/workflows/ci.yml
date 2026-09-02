@@ -18,11 +18,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y fpc lazarus
 
-      - name: Build CLI (ecw.pas)
-        run: fpc -O2 ecw.pas
+      - name: Build CLI (ecw.lpi)
+        run: ./build.sh cli
 
-      - name: Build GUI (Lazarus)
-        run: lazbuild --quiet gui/ecwcalc.lpi
+      - name: Build GUI (ecwcalc.lpi)
+        run: ./build.sh gui
 
       - name: Battery (regression vs reference batteries)
         run: python3 tests/battery.py ./ecw
