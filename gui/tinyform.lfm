@@ -2,63 +2,79 @@ object TinyForm: TTinyForm
   Caption = 'Calculator'
   ClientHeight = 50
   ClientWidth = 213
+  ActiveControl = EditIn
+  BorderIcons = [biSystemMenu, biMinimize]
   Position = poScreenCenter
+  object Bevel1: TBevel
+    Left = 184
+    Top = 3
+    Width = 9
+    Height = 45
+    Shape = bsRightLine
+  end
+  object EditIn: TComboBox
+    Left = 2
+    Top = 3
+    Width = 167
+    Height = 21
+    TabOrder = 0
+    OnChange = InChange
+  end
   object EditOut: TEdit
-    Left = 4
-    Top = 4
-    Width = 120
-    Height = 23
+    Left = 2
+    Top = 27
+    Width = 167
+    Height = 21
+    AutoSize = False
     Font.Height = -12
     Font.Name = 'Courier New'
     ParentColor = True
     ReadOnly = True
-    Text = '0'
-  end
-  object EditIn: TComboBox
-    Left = 4
-    Top = 26
-    Width = 120
-    Height = 25
-    DropDownCount = 11
-    OnChange = InChange
+    TabOrder = 2
+    TabStop = False
   end
   object ButtonCopy: TButton
-    Left = 128
-    Top = 4
-    Width = 40
-    Height = 25
+    Left = 172
+    Top = 27
+    Width = 16
+    Height = 21
     AutoSize = False
-    Caption = '¬'
+    Caption = #172
+    Default = True
+    TabOrder = 3
     OnClick = CopyClick
   end
   object ButtonEval: TButton
     Left = 172
-    Top = 4
-    Width = 37
-    Height = 25
+    Top = 3
+    Width = 16
+    Height = 21
     AutoSize = False
     Caption = '='
-    Font.Height = -11
+    Font.Height = -13
     Font.Name = 'Courier New'
+    TabOrder = 1
     OnClick = EvalClick
   end
   object ButtonSetup: TButton
-    Left = 128
-    Top = 26
-    Width = 40
-    Height = 25
+    Left = 195
+    Top = 3
+    Width = 16
+    Height = 21
     AutoSize = False
-    Caption = '¼'
+    Caption = #188
     Font.Style = [fsBold]
+    TabOrder = 4
     OnClick = SetupClick
   end
   object ButtonFmt: TButton
-    Left = 172
-    Top = 26
-    Width = 37
-    Height = 25
+    Left = 195
+    Top = 27
+    Width = 16
+    Height = 21
     AutoSize = False
     Caption = '#'
+    TabOrder = 5
     OnClick = FmtClick
   end
 end

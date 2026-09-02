@@ -53,6 +53,9 @@ begin
       MB_OK + MB_ICONINFORMATION);
     Halt;
   end;
-  Application.CreateForm(TCalcForm, CalcForm);
+  if cfg.SmallDialog then
+    Application.CreateForm(TTinyForm, TinyFrm)   // small (simplified) form
+  else
+    Application.CreateForm(TCalcForm, CalcForm);  // full form
   Application.Run;
 end.
