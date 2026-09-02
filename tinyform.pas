@@ -5,7 +5,8 @@ unit tinyform;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, StdCtrls, ExtCtrls, Clipbrd,
+  Classes, SysUtils, Types, Forms, Controls, Graphics, StdCtrls, ExtCtrls,
+  Clipbrd, Menus,
   ecwengine, Config, cfgform;
 
 type
@@ -26,9 +27,12 @@ type
     HaveVal: Boolean;
     LastVal: Extended;
     FmtIdx: Integer;               // 0=dec 1=hex 2=bin 3=oct 4=exp
+    FmtMenu: TPopupMenu;
     procedure DoEval;
     procedure ShowResult;
     procedure ShellClose(Sender: TObject; var CloseAction: TCloseAction);
+    procedure BuildFmtMenu;
+    procedure FmtMenuClick(Sender: TObject);
   public
     constructor Create(AOwner: TComponent); override;
     procedure ApplyUiConfig;
@@ -51,6 +55,7 @@ constructor TTinyForm.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   OnClose := @ShellClose;
+  BuildFmtMenu;
   ApplyUiConfig;
 end;
 
@@ -60,8 +65,33 @@ begin
 end;
 
 { Compact single-line calculator: input combo on top, result edit below.
-  '=' evaluates, '#' cycles the display format, '¬' copies the result,
+  '=' evaluates, '#' opens the display-format menu, '¬' copies the result,
   '¼' opens the configuration dialog. }
+
+procedure TTinyForm.BuildFmtMenu;
+const
+  Labels: array[0..4] of string = ('Dec', 'Hex', 'Bin', 'Oct', 'Exp');
+var
+  i: Integer;
+  mi: TMenuItem;
+begin
+  FmtMenu := TPopupMenu.Create(Self);
+  for i := 0 to 4 do begin
+    mi := TMenuItem.Create(FmtMenu);
+    mi.Caption := Labels[i];
+    mi.Tag := i;
+    mi.RadioItem := True;
+    mi.GroupIndex := 1;
+    mi.OnClick := @FmtMenuClick;
+    FmtMenu.Items.Add(mi);
+  end;
+end;
+
+procedure TTinyForm.FmtMenuClick(Sender: TObject);
+begin
+  FmtIdx := (Sender as TMenuItem).Tag;
+  if HaveVal then ShowResult;
+end;
 
 procedure TTinyForm.ApplyUiConfig;
 begin
@@ -157,9 +187,15 @@ begin
 end;
 
 procedure TTinyForm.FmtClick(Sender: TObject);
+var
+  i: Integer;
+  pt: TPoint;
 begin
-  FmtIdx := (FmtIdx + 1) mod 5;
-  if HaveVal then ShowResult;
+  if FmtMenu = nil then BuildFmtMenu;
+  for i := 0 to FmtMenu.Items.Count - 1 do
+    FmtMenu.Items[i].Checked := (FmtMenu.Items[i].Tag = FmtIdx);
+  pt := ButtonFmt.ClientToScreen(Point(0, ButtonFmt.Height));
+  FmtMenu.PopUp(pt.X, pt.Y);
 end;
 
 procedure TTinyForm.ClearHistory(Sender: TObject);
