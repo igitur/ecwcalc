@@ -47,6 +47,9 @@ begin
   Application.Initialize;
   InitEngine;
   LoadConfig;
+  // User definitions ship as ecw_defs.ini beside the executable (same layout
+  // as the original ECW); load them so the Definitions tab and engine match.
+  LoadDefsFile(ExtractFilePath(ParamStr(0)) + 'ecw_defs.ini');
   if (not cfg.AllowMul) and AlreadyRunning then begin
     Application.MessageBox(
       'Another instance of ECW Expression Calculator is already running.',

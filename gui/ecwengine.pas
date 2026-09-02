@@ -41,6 +41,12 @@ procedure DeleteDef(i: Integer);
 procedure MoveDef(i: Integer; Dir: Integer);
 procedure ClearDefs;
 
+// ecw_defs.ini persistence (one declaration per line, same format as the
+// original ECW 'Definitions' file).  LoadDefsFile appends to the current
+// set; returns number of lines parsed.  SaveDefsFile rewrites the file.
+function  LoadDefsFile(const AFileName: string): Integer;
+function  SaveDefsFile(const AFileName: string): Boolean;
+
 implementation
 
 { ============================================================================
@@ -71,6 +77,7 @@ type
     ArgNames: array[0..63] of string;
     Body: string;
     Val: Extended;
+    Raw: string;        // original "name(args)=body" / "name=value" text
   end;
   TVarBind = record Name: string; Val: Extended; end;
 
@@ -848,7 +855,8 @@ begin
 end;
 
 procedure AddDef(const Name: string; IsFunc: Boolean; NumArgs: Integer;
-                 const ArgNames: array of string; const Body: string; Val: Extended);
+                 const ArgNames: array of string; const Body: string; Val: Extended;
+                 const RawDecl: string);
 var i, j: Integer;
 begin
   if DefCount >= MaxDefs then begin SetErr('too many definitions'); Exit; end;
@@ -859,6 +867,7 @@ begin
       Defs[i].NumArgs := NumArgs;
       Defs[i].Body := Body;
       Defs[i].Val := Val;
+      Defs[i].Raw := RawDecl;
       for j := 0 to NumArgs - 1 do Defs[i].ArgNames[j] := ArgNames[j];
       Exit;
     end;
@@ -869,17 +878,19 @@ begin
   Defs[i].NumArgs := NumArgs;
   Defs[i].Body := Body;
   Defs[i].Val := Val;
+  Defs[i].Raw := RawDecl;
   for j := 0 to NumArgs - 1 do Defs[i].ArgNames[j] := ArgNames[j];
 end;
 
 { Top-level: [var=val, ...] expr  or  [f(args)=body, ...] expr }
 function ParseTopLevel: Extended;
 var
-  Name, Body: string;
+  Name, Body, RawDecl: string;
   ArgNames: array[0..63] of string;
   NumArgs: Integer;
   Save: Integer;
   BodyStart: Integer;
+  DeclStart: Integer;
   DepthScan: Integer;
   V: Extended;
   i: Integer;
@@ -890,6 +901,7 @@ begin
   while True do begin
     SkipWS;
     Save := P;
+    DeclStart := P;
 
     // detect: identifier ['(' args ')'] '='  (peek only, don't consume on failure)
     LooksLikeDef := False;
@@ -956,11 +968,13 @@ begin
         end;
         Body := Trim(Body);
         if Body = '' then begin SetErr('missing expression'); Exit; end;
-        AddDef(Name, True, NumArgs, ArgNames, Body, 0);
+        RawDecl := Trim(Copy(S, DeclStart, P - DeclStart));
+        AddDef(Name, True, NumArgs, ArgNames, Body, 0, RawDecl);
       end else begin
         V := ParseExpr(0);
         if Err <> '' then Exit;
-        AddDef(Name, False, 0, ArgNames, '', V);
+        RawDecl := Trim(Copy(S, DeclStart, P - DeclStart));
+        AddDef(Name, False, 0, ArgNames, '', V, RawDecl);
       end;
       SkipWS;
       if PeekC = ListSepC then begin NextC; Continue; end;
@@ -1173,6 +1187,7 @@ var
   j: Integer;
 begin
   if (i < 0) or (i >= DefCount) then begin Result := ''; Exit; end;
+  if Defs[i].Raw <> '' then begin Result := Defs[i].Raw; Exit; end;
   if Defs[i].IsFunc then begin
     Result := Defs[i].Name + '(';
     for j := 0 to Defs[i].NumArgs - 1 do begin
@@ -1208,6 +1223,46 @@ procedure ClearDefs;
 begin
   SetLength(Defs, 0);
   DefCount := 0;
+end;
+
+function LoadDefsFile(const AFileName: string): Integer;
+var
+  f: Text;
+  Line: string;
+  m: string;
+begin
+  Result := 0;
+  if not FileExists(AFileName) then Exit;
+  AssignFile(f, AFileName);
+  {$I-}
+  Reset(f);
+  {$I+}
+  if IOResult <> 0 then Exit;
+  while not Eof(f) do begin
+    ReadLn(f, Line);
+    Line := Trim(Line);
+    if Line = '' then Continue;
+    if Line[1] = ';' then Continue;      // comment
+    m := AddDefDecl(Line);
+    if m = '' then Inc(Result);
+  end;
+  CloseFile(f);
+end;
+
+function SaveDefsFile(const AFileName: string): Boolean;
+var
+  f: Text;
+  i: Integer;
+begin
+  AssignFile(f, AFileName);
+  {$I-}
+  Rewrite(f);
+  {$I+}
+  if IOResult <> 0 then Exit(False);
+  for i := 0 to DefCount - 1 do
+    WriteLn(f, DefDecl(i));
+  CloseFile(f);
+  Result := True;
 end;
 
 end.

@@ -129,6 +129,8 @@ begin
   SaveCfg;
   SaveConfig;
   ApplyConfig;
+  // persist user definitions to ecw_defs.ini (next to the executable)
+  SaveDefsFile(ExtractFilePath(ParamStr(0)) + 'ecw_defs.ini');
   ModalResult := mrOK;
 end;
 
