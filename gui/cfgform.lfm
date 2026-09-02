@@ -215,21 +215,39 @@ object CfgForm: TCfgForm
           Top = 49
           Width = 250
           Height = 23
+          AutoSize = False
           Caption = '    .        ,    '
+          Font.Charset = DEFAULT_CHARSET
+          Font.Height = -16
+          Font.Name = 'Courier New'
+          Font.Style = [fsBold]
+          ParentFont = False
         end
         object OptSep1: TRadioButton
           Left = 12
           Top = 67
           Width = 250
           Height = 23
+          AutoSize = False
           Caption = '    ,        ;    '
+          Font.Charset = DEFAULT_CHARSET
+          Font.Height = -16
+          Font.Name = 'Courier New'
+          Font.Style = [fsBold]
+          ParentFont = False
         end
         object OptSep2: TRadioButton
           Left = 12
           Top = 85
           Width = 250
           Height = 23
+          AutoSize = False
           Caption = '    .        ;    '
+          Font.Charset = DEFAULT_CHARSET
+          Font.Height = -16
+          Font.Name = 'Courier New'
+          Font.Style = [fsBold]
+          ParentFont = False
         end
       end
       object GroupConst: TGroupBox
