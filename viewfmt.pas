@@ -15,6 +15,7 @@ interface
 uses SysUtils, Math, ecwengine;
 
 function RowDec(v: Extended; Prec: Integer; TrimTrail0: Boolean): string;
+function RowDecFixed(v: Extended; Prec: Integer; TrimTrail0: Boolean): string;
 function RowExp(v: Extended; Prec: Integer; TrimTrail0: Boolean): string;
 function RowHex32(v: Extended; StripLead0: Boolean): string;
 function RowBin32(v: Extended; StripLead0: Boolean): string;
@@ -103,6 +104,30 @@ begin
   s := FloatToStrF(v, ffExponent, d, 4);
   if TrimTrail0 then s := TrimExpMantissa(s);
   Result := s;
+end;
+
+// Always-decimal variant of RowDec: keeps the value in fixed (non-scientific)
+// notation for every magnitude that fits, so integers still carry their
+// decimal places (trimmed only when NoTrail0 is on); huge magnitudes that a
+// fixed string cannot hold fall back to exponent notation for their digits.
+function RowDecFixed(v: Extended; Prec: Integer; TrimTrail0: Boolean): string;
+var
+  d: Integer;
+  s: string;
+begin
+  if IsNan(v) or IsInfinite(v) then Exit('ERROR');
+  d := ClampPrec(Prec);
+  if Abs(v) < 1e18 then begin
+    s := FloatToStrF(v, ffFixed, 0, d);
+    if TrimTrail0 then s := TrimTrailZeros(s);
+    if (v < 0) and (s = '0') then s := '-0';
+    Result := s;
+  end else begin
+    // too large for a fixed string: keep the digits via exponent notation
+    s := FloatToStrF(v, ffExponent, 15, 4);
+    if TrimTrail0 then s := TrimExpMantissa(s);
+    Result := s;
+  end;
 end;
 
 function StripLead(const s: string): string;

@@ -26,7 +26,7 @@ type
   private
     HaveVal: Boolean;
     LastVal: Extended;
-    FmtIdx: Integer;               // 0=dec 1=hex 2=bin 3=oct 4=exp
+    FmtIdx: Integer;               // 0=auto(dec/exp) 1=dec 2=hex 3=bin 4=oct 5=exp
     FmtMenu: TPopupMenu;
     procedure DoEval;
     procedure ShowResult;
@@ -70,13 +70,15 @@ end;
 
 procedure TTinyForm.BuildFmtMenu;
 const
-  Labels: array[0..4] of string = ('Dec', 'Hex', 'Bin', 'Oct', 'Exp');
+  Labels: array[0..5] of string =
+    ('Auto (dec/exp)', 'Decimal', 'Hexadecimal', 'Binary', 'Octal',
+     'Exponential');
 var
   i: Integer;
   mi: TMenuItem;
 begin
   FmtMenu := TPopupMenu.Create(Self);
-  for i := 0 to 4 do begin
+  for i := 0 to 5 do begin
     mi := TMenuItem.Create(FmtMenu);
     mi.Caption := Labels[i];
     mi.Tag := i;
@@ -131,12 +133,13 @@ procedure TTinyForm.ShowResult;
 begin
   if not HaveVal then Exit;
   case FmtIdx of
-    1: EditOut.Text := RowHex32(LastVal, cfg.NoLead0);
-    2: EditOut.Text := RowBin32(LastVal, cfg.NoLead0);
-    3: EditOut.Text := RowOct32(LastVal, cfg.NoLead0);
-    4: EditOut.Text := RowExp(LastVal, cfg.Prec, cfg.NoTrail0);
+    1: EditOut.Text := RowDecFixed(LastVal, cfg.Prec, cfg.NoTrail0);
+    2: EditOut.Text := RowHex32(LastVal, cfg.NoLead0);
+    3: EditOut.Text := RowBin32(LastVal, cfg.NoLead0);
+    4: EditOut.Text := RowOct32(LastVal, cfg.NoLead0);
+    5: EditOut.Text := RowExp(LastVal, cfg.Prec, cfg.NoTrail0);
   else
-    EditOut.Text := RowDec(LastVal, cfg.Prec, cfg.NoTrail0);
+    EditOut.Text := RowDec(LastVal, cfg.Prec, cfg.NoTrail0);   // Auto (dec/exp)
   end;
 end;
 
