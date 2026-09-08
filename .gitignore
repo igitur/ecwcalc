@@ -13,3 +13,7 @@
 # IDE session / backup files
 *.lps
 /backup/
+
+# python test caches / stray session files
+__pycache__/
+ses_*

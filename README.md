@@ -62,31 +62,34 @@ Evaluate/Copy/Setup/Help/Close buttons) plus the Setup dialog (interface
 settings + user variables/functions tab) and the Definition dialog. Settings
 persist to `ecwcalc.ini` next to the binary.
 
-## Language features (all ground-truthed against the original)
+## Language features (all ground-truthed against ECW v1.06)
 
 - **Operators** (loosest → tightest):
-  `= == <> != < > <= >=` → `& | ^ && || ^^ << >>` → `+ -` → `* / ** // %` →
-  unary `+ - ~ !`; all binary operators left-associative; unary binds tighter
-  than `**` (`-2**2 = 4`).
-- **Integer semantics**: 32-bit truncation with sign reinterpretation
-  (`1<<31 = -2147483648`, `-8>>1 = 2147483644`), truncated `//` and `%`
-  (`-8//3 = -2`).
+  `= == <> != < > <= >=` → `& | ^ && || ^^ << >> >>>` → `+ -` → `* / // %` →
+  `**` → unary `+ - ~ !`; all binary operators left-associative; unary binds
+  tighter than `**` (`-2**2 = 4`, `2*3**2 = 18`).
+- **Integer semantics**: 32-bit with sign reinterpretation
+  (`1<<31 = -2147483648`, `-8>>1 = 2147483644`, `-8>>>1 = -4`), truncated
+  `//` and `%` (`-8//3 = -2`).
 - **Numbers**: `12`, `0xAB`, `$AB`, `12h`, `0ABh`, `101b`, `12o`, `012`,
   `1.`, `.5`, `1e2`, `12.34e-56`. `--unsigned` gives 32-bit unsigned hex
   (`0xFFFFFFFF` → 4294967295).
-- **Constants**: `e`, `pi`.
-- **Functions**: `sin cos tan asin acos atan sec csc cot sinh cosh tanh
-  asinh acosh atanh exp ln log10 log2 sqrt cbrt abs sgn ceil floor round
-  trunc frac fact int2str float2str` + list functions `sum prod avg geo
-  min max poly` (≥2 args; `log` has a 1-arg form).
+- **Constants**: `e`, `pi` (case-insensitive).
+- **Functions** (case-insensitive; names follow v1.06): `sin cos tan/tg
+  cot/ctg sec csc asin acos atan acot asec acsc`, `sinh/sh cosh/ch tanh/th
+  coth/cth sech csch asinh acosh atanh acoth asech acsch`, `exp ln log
+  lg/log10 log2 sqr sqrt fact abs sign int frac round ceil floor rad deg
+  ndeg nrad` + list functions `sum sumsq prod/mul avg gavg havg qavg/rms
+  norm vart var/varp vars std stdp min max gcd lcm poly log(2-arg)`.
+  `log(x)` = `ln(x)`; `log(a,x)` = log base a of x.
 - **Variables and user functions**: `z=1,(z+1/z)/2`; `f(x)=x*x,f(5)` — also
   addable from the GUI's Setup → User variables/functions tab.
 - **Separators** (`--sep=0/1/2`): `.`+`,` / `,`+`;` / `.`+`;`.
 - **Exact error messages**: `overflow: /`, `unknown function: foo`,
   `invalid expression: ...`, `illegal |arg|>1: asin`, etc.
-- **Output format**: `|v|<1` → 17 decimals; `1≤|v|<1e18` → 18 sig digits;
-  `|v|≥1e18` → 15-sig scientific with 4-digit exponent
-  (`2**1000 → 1.07150860718627E+0301`).
+- **Output format**: `|v|<1` → 17 decimals; `1≤|v|≤1e18` → 18 sig digits
+  (integers ≤ 1e18 printed plain); `|v|>1e18` → 18-sig scientific with
+  sign+4-digit exponent (`2**1000 → 1.07150860718626732E+0301`).
 
 ## Fidelity notes
 
@@ -94,8 +97,25 @@ persist to `ecwcalc.ini` next to the binary.
   `ln(0)` → `overflow: ln`, `fact(200)` succeeds.
 - The engine unit (`ecwengine.pas`) is shared verbatim by the CLI and GUI,
   so both are guaranteed to produce identical results.
-- 188/188 differential tests pass byte-for-byte against the original engine
-  (see `tests/` history in git log).
+- Engine semantics now follow **ECW v1.06** (the last release): case-insensitive
+  identifiers, `**` binding tighter than `* / // %`, signed shift `>>>`,
+  32-bit integer ops, `log` = `ln` with `lg`/`log10`/`log2`, `cot`/`acot`/
+  `tg`/`ctg`/`sec`/`csc`/`round`/`ceil`/`floor`/`ndeg`/`nrad`, aliases
+  `sh`/`ch`/`th`/`cth`, hyperbolic-arc siblings, and the full StatFunc list set
+  (`sumsq`, `mul`, `gavg`, `havg`, `qavg/rms`, `norm`, `vart`/`var`/`varp`/
+  `vars`/`std`/`stdp`, `gcd`, `lcm`). Number formatting follows v1.06
+  (18-significant-digit scientific for |v| ≥ 1e18, plain integers ≤ 1e18,
+  `-0` preserved, literals with |exponent| ≥ 5000 or magnitude above the
+  80-bit maximum rejected as `invalid expression`).
+- Differential suite: `tests/diff_oracle.py` / `tests/diff_ref.py` compare
+  against the official v1.06 console engine (`ec.exe`) under Wine; the
+  captured corpus lives in `tests/oracle_corpus.jsonl` (484/493 byte-exact).
+  Remaining mismatches are (a) decimal-printer model for typed literals that
+  exceed 18 significant digits (`123456789012345.6789`), (b) transcendental
+  values at extreme magnitudes where the original's `exp` differs from FPC's
+  in the last printed digit (`exp(10000)`, `sinh(1e4)`), and (c) last-ulp
+  parse ties on 20-digit literals. `tests/rtl_audit.pas`/GUI per-format
+  (Hex/Bin/Oct/Exp) oracle capture is still in progress.
 
 ## License
 
