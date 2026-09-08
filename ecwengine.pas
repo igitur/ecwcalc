@@ -346,7 +346,15 @@ const
   Ln2 = 0.69314718055994530942;
 
 const
-  EConst: Extended = 2.7182818284590452353602874713526624977572470937;
+  MaxExtD: Extended = 1.189731495357231765e4932;   // true 80-bit extended max
+
+{ 'e' constant of the original (ec.exe v1.06) = nearest-extended of true e. }
+function GetE: Extended;
+const
+  E0: Extended = 2.7182818284590452353602874713526624977572470937;
+begin
+  Result := E0;
+end;
 
 function AngleOK(x: Extended; const Suf: string): Boolean;
 begin
@@ -582,7 +590,7 @@ begin
     'gavg': begin
               for i := 0 to n - 1 do if A[i] < 0 then begin SetErr('illegal arg<0: gavg'); Exit(0); end;
               Result := 1; for i := 0 to n - 1 do Result := Result * A[i];
-              Result := PowE(Result, 1 / n);
+              Result := PowE(Result, 1 / Extended(n));
             end;
     'havg': begin
               for i := 0 to n - 1 do if A[i] < 0 then begin SetErr('illegal arg<0: havg'); Exit(0); end;
@@ -685,7 +693,7 @@ begin
   for i := 0 to DefCount - 1 do
     if (not Defs[i].IsFunc) and (CompareText(Defs[i].Name, N) = 0) then begin V := Defs[i].Val; Exit(True); end;
   if N = 'pi' then begin V := Pi; Exit(True); end;
-  if N = 'e'  then begin V := EConst; Exit(True); end;
+  if N = 'e'  then begin V := GetE; Exit(True); end;
   Result := False;
 end;
 
@@ -867,13 +875,13 @@ function ScalePow10(v: Extended; k: Integer): Extended; forward;
 function TryParseReal(out V: Extended): Boolean;
 var
   Start: Integer;
-  mant: Int64;
-  m64: Int64;
-  fracDigits: Integer;
-  E: Integer; i, signe: Integer;
+  d: Extended;
+  E: Int64;
+  fracDigits, i: Integer;
+  signe: Integer;
   had: Boolean;
   C: Char;
-  Overflowed: Boolean;
+  Tok: string;
 begin
   Result := False;
   V := 0;
@@ -882,30 +890,24 @@ begin
   if not ((C in ['0'..'9']) or (C = DecimalSep)) then Exit;
 
   Start := P;
-  // integer part
-  mant := 0; had := False; Overflowed := False;
+  d := 0; had := False;
+  { integer part }
   while (P <= Length(S)) and (S[P] in ['0'..'9']) do begin
-    if not Overflowed then begin
-      if mant > (High(Int64) - (Ord(S[P]) - 48)) div 10 then Overflowed := True
-      else mant := mant * 10 + (Ord(S[P]) - 48);
-    end;
+    d := d * 10 + (Ord(S[P]) - 48);
     Inc(P); had := True;
   end;
-  // fraction part
+  { fraction part }
   fracDigits := 0;
   if (P <= Length(S)) and (S[P] = DecimalSep) then begin
     Inc(P);
     while (P <= Length(S)) and (S[P] in ['0'..'9']) do begin
-      if not Overflowed then begin
-        if mant > (High(Int64) - (Ord(S[P]) - 48)) div 10 then Overflowed := True
-        else mant := mant * 10 + (Ord(S[P]) - 48);
-      end;
+      d := d * 10 + (Ord(S[P]) - 48);
       Inc(P); had := True; Inc(fracDigits);
     end;
   end;
   if not had then begin Result := False; Exit; end;
 
-  // exponent suffix
+  { exponent suffix }
   E := 0; signe := 1;
   if (P <= Length(S)) and ((S[P] = 'e') or (S[P] = 'E')) then begin
     Inc(P);
@@ -918,38 +920,35 @@ begin
       P := P - 1; { back to 'e' position; caller treats rest as error }
       if signe = -1 then P := P - 1; { back over the sign too }
       V := 0;
-      // re-read integer mantissa without exponent
       Result := True;
       Exit;
     end;
     while (P <= Length(S)) and (S[P] in ['0'..'9']) do begin
-      E := E * 10 + (Ord(S[P]) - 48);
-      if E > 5000 then break;
+      if E < 1000000000 then E := E * 10 + (Ord(S[P]) - 48);
       Inc(P);
     end;
     E := E * signe;
   end;
 
-  // Val-style: integer mantissa * 10^(E - fracDigits)
-  // Delphi 3 Val/Str2Ext computes mantissa as Int64 then scales by power of 10.
-  if Overflowed then begin
-    // mantissa too big for Int64: accumulate in Extended instead
-    V := 0;
-    P := Start;
-    while (P <= Length(S)) and (S[P] in ['0'..'9']) do begin
-      V := V * 10 + (Ord(S[P]) - 48); Inc(P);
-    end;
-    if (P <= Length(S)) and (S[P] = DecimalSep) then begin
-      Inc(P);
-      while (P <= Length(S)) and (S[P] in ['0'..'9']) do begin
-        V := V * 10 + (Ord(S[P]) - 48); Inc(P);
-      end;
-    end;
-    V := ScalePow10(V, E - fracDigits);
-  end else begin
-    V := Extended(mant);
-    if (E - fracDigits) <> 0 then
-      V := ScalePow10(V, E - fracDigits);
+  Tok := Copy(S, Start, P - Start);
+  { v1.06 rejects |written exponent| >= 5000 at parse time }
+  if (E >= 5000) or (E <= -5000) then begin
+    SetErr('invalid expression: ' + Tok);
+    Result := True;
+    Exit;
+  end;
+
+  { scale integer mantissa by 10^(E - fracDigits) }
+  if (E - fracDigits) <> 0 then
+    V := ScalePow10(d, Integer(E - fracDigits))
+  else
+    V := d;
+
+  { literal magnitude above the true extended maximum is a parse error }
+  if (d <> 0) and (IsInfinite(V) or (V > MaxExtD)) then begin
+    SetErr('invalid expression: ' + Tok);
+    Result := True;
+    Exit;
   end;
   Result := True;
 end;
@@ -1321,14 +1320,25 @@ end;
 function FmtSci18(v: Extended): string;
 var
   av, s, p: Extended;
-  e0, i: Integer;
+  e0, i, a, b: Integer;
+  P18: Extended;
   mant, es: string;
 begin
   Result := '';
   if v < 0 then begin Result := '-'; av := -v; end else av := v;
   e0 := Trunc(Log10(av));
   p := 1;
-  for i := 1 to e0 do p := p * 10;
+  if e0 > 0 then begin
+    { 10^18 is exactly representable in Extended: chunk the exponent so the
+      power-of-ten is built with ~e0/18 (<= 275) roundings, not e0 of them. }
+    P18 := 1e18;
+    a := e0 div 18;
+    b := e0 mod 18;
+    for i := 1 to a do p := p * P18;
+    for i := 1 to b do p := p * 10;
+  end else if e0 < 0 then begin
+    for i := -1 downto e0 do p := p / 10;
+  end;
   s := av / p;
   while s >= 10 do begin
     Inc(e0);
