@@ -133,6 +133,11 @@ begin
   if P + 1 > Length(S) then Result := #0 else Result := S[P + 1];
 end;
 
+function PeekC3: Char; inline;
+begin
+  if P + 2 > Length(S) then Result := #0 else Result := S[P + 2];
+end;
+
 function NextC: Char; inline;
 begin
   Result := PeekC;
@@ -154,200 +159,491 @@ begin
   Result := Frac(v) = 0;
 end;
 
-function ToInt(v: Extended; const Op: string; out I: Int64): Boolean;
+{ ---- integer-arg semantics, matching StdMath v1.06 (_int.pas) ----
+  IsReal  : Abs(Frac(x)) > 1e-18      -> 'illegal real argN'
+  IsDWord : Int(x) within int32       -> 'overflow in int argN'
+  All bit/div/mod ops are 32-bit on LongInt. }
+
+function IsRealX(v: Extended): Boolean; inline;
+begin
+  Result := Abs(Frac(v)) > 1e-18;
+end;
+
+function IsDWordX(v: Extended): Boolean;
+begin
+  Result := (Int(v) >= -2147483648.0) and (Int(v) <= 2147483647.0);
+end;
+
+function ToIntN(v: Extended; const Op: string; ArgNo: Integer; out n: LongInt): Boolean;
 begin
   Result := False;
-  if not Frac0(v) then begin SetErr('illegal real arg: ' + Op); Exit; end;
-  if (v > 9.223372036854775807e18) or (v < -9.223372036854775808e18) then
-  begin SetErr('overflow in int arg: ' + Op); Exit; end;
-  I := Round(v);
+  if IsRealX(v) then begin
+    if ArgNo = 1 then SetErr('illegal real arg1: ' + Op)
+                else SetErr('illegal real arg2: ' + Op);
+    Exit;
+  end;
+  if not IsDWordX(v) then begin
+    if ArgNo = 1 then SetErr('overflow in int arg1: ' + Op)
+                else SetErr('overflow in int arg2: ' + Op);
+    Exit;
+  end;
+  n := Trunc(v);
   Result := True;
 end;
 
 function BitNot(v: Extended): Extended;
-var i: Int64;
+var n2: LongInt;
 begin
-  if not ToInt(v, '~', i) then Exit(0);
-  Result := Extended(LongInt(not UInt32(i)));
+  if not ToIntN(v, '~', 2, n2) then Exit(0);
+  Result := Extended(LongInt(not n2));
 end;
 
 function BitOp2(const Op: string; a, b: Extended): Extended;
-var ia, ib: Int64; c: Integer;
+var n1, n2, c: LongInt; u: UInt32;
 begin
   Result := 0;
-  if not ToInt(a, Op, ia) then Exit;
-  if not ToInt(b, Op, ib) then Exit;
+  if not ToIntN(a, Op, 1, n1) then Exit;
+  if not ToIntN(b, Op, 2, n2) then Exit;
   case Op of
-    '&' : Result := Extended(LongInt(UInt32(ia) and UInt32(ib)));
-    '|' : Result := Extended(LongInt(UInt32(ia) or  UInt32(ib)));
-    '^' : Result := Extended(LongInt(UInt32(ia) xor UInt32(ib)));
+    '&' : Result := Extended(LongInt(n1 and n2));
+    '|' : Result := Extended(LongInt(n1 or  n2));
+    '^' : Result := Extended(LongInt(n1 xor n2));
     '<<': begin
-            if ib < 0 then begin SetErr('illegal arg2<0: <<'); Exit; end;
-            c := ib;
-            if c >= 32 then Result := 0
-            else Result := Extended(LongInt(UInt32(ia) shl c));
+            if n2 < 0 then begin SetErr('illegal arg2<0: <<'); Exit; end;
+            if n2 > 31 then Result := 0
+            else Result := Extended(LongInt(LongInt(n1) shl n2));
           end;
     '>>': begin
-            if ib < 0 then begin SetErr('illegal arg2<0: >>'); Exit; end;
-            c := ib;
-            if c >= 32 then Result := 0
-            else Result := Extended(LongInt(UInt32(ia) shr c));
+            if n2 < 0 then begin SetErr('illegal arg2<0: >>'); Exit; end;
+            if n2 > 31 then Result := 0
+            else Result := Extended(LongInt(UInt32(n1) shr n2));
+          end;
+    '>>>': begin
+            if n2 < 0 then begin SetErr('illegal arg2<0: >>>'); Exit; end;
+            if n2 > 31 then c := 31 else c := n2;
+            u := UInt32(n1);
+            if c = 0 then Result := Extended(LongInt(n1))
+            else if n1 < 0 then
+              Result := Extended(LongInt((u shr c) or ($FFFFFFFF shl (32 - c))))
+            else
+              Result := Extended(LongInt(u shr c));
           end;
   end;
+end;
+
+const
+  MReal = 1.1e4932;                 // StdMath v1.06 'M' (max ~ extended)
+
+{ _Ln / _Exp of StdMath v1.06 (_std.pas): error strings carry the
+  function name separately, so we pass a suffix. }
+function ChkLn(x: Extended; const Suf: string): Extended;
+begin
+  Result := 0;
+  if x < 0 then begin SetErr('illegal arg<0: ' + Suf); Exit; end;
+  if x < 1 / MReal then begin SetErr('overflow: ' + Suf); Exit; end;
+  Result := Ln(x);
+end;
+
+function ChkExp(x: Extended; const Suf: string): Extended;
+begin
+  Result := 0;
+  if x > Ln(MReal) then begin SetErr('overflow: ' + Suf); Exit; end;
+  if x < -Ln(MReal) then Result := 0
+  else Result := Exp(x);
+end;
+
+{ _Mul of StdMath v1.06 (_std.pas) }
+function ChkMul(a, b: Extended; const Suf: string): Extended;
+var a1, a2: Extended;
+begin
+  Result := 1;
+  if Err <> '' then Exit;
+  a1 := Abs(a); a2 := Abs(b);
+  if ((a2 > 1) and (a1 > MReal / a2)) or ((a1 > 1) and (a2 > MReal / a1)) then
+  begin SetErr('overflow: ' + Suf); Exit; end;
+  Result := a * b;
+end;
+
+{ _Div of StdMath v1.06 (_std.pas) }
+function ChkDiv(a, b: Extended; const Suf: string): Extended;
+var a1, a2: Extended;
+begin
+  Result := 1;
+  if Err <> '' then Exit;
+  a1 := Abs(a); a2 := Abs(b);
+  if (a2 = 0) or ((a1 > 1) and (a1 / MReal > a2)) or
+     ((a2 < 1) and (a1 > MReal * a2)) then
+  begin SetErr('overflow: ' + Suf); Exit; end;
+  Result := a / b;
+end;
+
+{ _Pow of StdMath v1.06: real-exponent path }
+function PowR(x1, x2: Extended): Extended;
+var t: Extended;
+begin
+  Result := 0;
+  if Err <> '' then Exit;
+  if x1 < 0 then begin SetErr('illegal arg1<0: **'); Exit; end;
+  if (x1 < 1 / MReal) and (x2 >= 1) then begin Result := 0; Exit; end;
+  t := ChkLn(x1, '**');
+  if Err <> '' then Exit;
+  t := ChkMul(x2, t, '**');
+  if Err <> '' then Exit;
+  Result := ChkExp(t, '**');
 end;
 
 function PowE(x, y: Extended): Extended;
 var
-  t: Extended;
-  sgn: Extended;
-  n: Int64;
-  base, acc: Extended;
-  neg: Boolean;
+  MaxRes: Extended;
+  DoCheck: Boolean;
+  i, n: LongInt;
+  r: Extended;
 begin
-  if y = 0 then begin
-    if x = 0 then Result := 0 else Result := 1;   // 0^0 = 0 (original)
+  Result := 0;
+  if y = 0 then begin Result := 1; Exit; end;          // x2=0 -> 1
+  if (x = 0) and (y > 0) then begin Result := 0; Exit; end;
+  if IsRealX(y) or (Abs(y) > 1e4) then begin            // _PowR
+    Result := PowR(x, y);
+    if Err <> '' then Exit(0);
+    if IsInfinite(Result) or IsNan(Result) then SetErr('overflow: **');
     Exit;
   end;
-  if x = 0 then begin
-    if y < 0 then SetErr('overflow: **');
-    Result := 0;
-    Exit;
-  end;
-
-  // integer-exponent fast path: exact via exponentiation by squaring
-  if Frac0(y) and (Abs(y) <= 1e9) then begin
-    n := Round(y);
-    neg := n < 0;
-    if neg then n := -n;
-    base := x;
-    acc := 1;
-    while n > 0 do begin
-      if (n and 1) <> 0 then acc := acc * base;
-      n := n shr 1;
-      if n > 0 then base := base * base;
+  // integer exponent: _PowI (linear multiply, overflow pre-checked)
+  n := Trunc(y);
+  DoCheck := Abs(x) > 1;
+  if DoCheck then MaxRes := Abs(MReal / x) else MaxRes := 0;
+  r := 1;
+  if n < 0 then i := -n else i := n;
+  while i > 0 do begin
+    if DoCheck and (Abs(r) > MaxRes) then begin
+      if n > 0 then begin SetErr('overflow: **'); Exit(0); end
+      else begin Result := 0; Exit; end;
     end;
-    if neg then begin
-      if acc = 0 then begin SetErr('overflow: **'); Exit(0); end;
-      acc := 1 / acc;
-    end;
-    if IsInfinite(acc) or IsNan(acc) then begin SetErr('overflow: **'); Exit(0); end;
-    Result := acc;
-    Exit;
+    r := r * x;
+    Dec(i);
   end;
-
-  if x < 0 then begin
-    if not Frac0(y) then begin SetErr('invalid usage: **'); Exit(0); end;
-    sgn := -1;
-    if Frac(y / 2) = 0 then sgn := 1;
-    t := Exp(y * Ln(-x));
-    Result := sgn * t;
-  end else
-    Result := Exp(y * Ln(x));
+  if n < 0 then r := ChkDiv(1, r, '**');
+  if Err <> '' then Exit(0);
+  Result := r;
   if IsInfinite(Result) or IsNan(Result) then SetErr('overflow: **');
 end;
 
 function Fact(a: Extended): Extended;
 var i: Integer; r: Extended;
 begin
+  if IsRealX(a) then begin SetErr('illegal real arg: fact'); Exit(0); end;
   if a < 0 then begin SetErr('illegal arg<0: fact'); Exit(0); end;
-  if not Frac0(a) then begin SetErr('illegal real arg: fact'); Exit(0); end;
-  if a > 1750 then begin SetErr('overflow: fact'); Exit(0); end;
+  if a > 1754 then begin SetErr('overflow: fact'); Exit(0); end;
   r := 1;
   for i := 2 to Trunc(a) do r := r * i;
   Result := r;
 end;
 
+{ ---- StdMath v1.06 _angle.pas: large-angle guard + Fix0 (<1e-18 -> 0) ---- }
+const
+  M_ASin1 = 1 - 1e-19;          // _ASin threshold
+  M_TanH1 = 1000.0;             // _TanH threshold
+  Ln2 = 0.69314718055994530942;
+
+const
+  EConst: Extended = 2.7182818284590452353602874713526624977572470937;
+
+function AngleOK(x: Extended; const Suf: string): Boolean;
+begin
+  Result := Abs(x) <= 1e17;
+  if not Result then SetErr('overflow in arg: ' + Suf);
+end;
+
+function F_Sin(x: Extended; const Suf: string): Extended;
+begin
+  Result := 0;
+  if Err <> '' then Exit;
+  if not AngleOK(x, Suf) then Exit;
+  Result := Sin(x);
+  if Abs(Result) < 1e-18 then Result := 0;
+end;
+
+function F_Cos(x: Extended; const Suf: string): Extended;
+begin
+  Result := 0;
+  if Err <> '' then Exit;
+  if not AngleOK(x, Suf) then Exit;
+  Result := Cos(x);
+  if Abs(Result) < 1e-18 then Result := 0;
+end;
+
+function F_Sqrt(x: Extended; const Suf: string): Extended;
+begin
+  Result := 0;
+  if x < 0 then SetErr('illegal arg<0: ' + Suf)
+  else Result := Sqrt(x);
+end;
+
+function F_ASin(x: Extended; const Suf: string): Extended;
+begin
+  Result := 0;
+  if Abs(x) > 1 then begin SetErr('illegal |arg|>1: ' + Suf); Exit; end;
+  if x > M_ASin1 then Result := Pi / 2
+  else if x < -M_ASin1 then Result := -Pi / 2
+  else Result := ArcTan(ChkDiv(x, Sqrt(1 - x * x), Suf));
+end;
+
+function F_ACos(x: Extended; const Suf: string): Extended;
+begin
+  Result := Pi / 2 - F_ASin(x, Suf);
+end;
+
+function F_ATanH(x: Extended; const Suf: string): Extended;
+begin
+  if Abs(x) > 1 then begin SetErr('illegal |arg|>1: ' + Suf); Exit(0); end;
+  if x < 0 then Result := -F_ATanH(-x, Suf)
+  else Result := ChkLn(ChkDiv(1 + x, 1 - x, Suf), Suf) / 2;
+end;
+
+function F_ACotH(x: Extended; const Suf: string): Extended;
+begin
+  if Abs(x) < 1 then begin SetErr('illegal |arg|<1: ' + Suf); Exit(0); end;
+  if x < 0 then Result := -F_ACotH(-x, Suf)
+  else Result := ChkLn(ChkDiv(x + 1, x - 1, Suf), Suf) / 2;
+end;
+
+function F_ASinH(x: Extended; const Suf: string): Extended;
+begin
+  if x < 0 then Result := -F_ASinH(-x, Suf)
+  else if x > 1e10 then Result := Ln2 + Ln(x)
+  else Result := Ln(x + Sqrt(x * x + 1));
+end;
+
+function F_ACosH(x: Extended; const Suf: string): Extended;
+begin
+  Result := 0;
+  if x < 1 then begin SetErr('illegal arg<1: ' + Suf); Exit; end;
+  if x > 1e10 then Result := Ln2 + Ln(x)
+  else Result := Ln(x + Sqrt(x * x - 1));
+end;
+
+function F_SinH(x: Extended; const Suf: string): Extended;
+var t1, t2: Extended;
+begin
+  t1 := ChkExp(x, Suf);
+  t2 := ChkExp(-x, Suf);
+  if Err <> '' then Exit(0);
+  Result := (t1 - t2) / 2;
+end;
+
+function F_CosH(x: Extended; const Suf: string): Extended;
+var t1, t2: Extended;
+begin
+  t1 := ChkExp(x, Suf);
+  t2 := ChkExp(-x, Suf);
+  if Err <> '' then Exit(0);
+  Result := (t1 + t2) / 2;
+end;
+
+function F_TanH(x: Extended; const Suf: string): Extended;
+var y: Extended;
+begin
+  Result := 1;
+  if x > M_TanH1 then Exit
+  else if x < -M_TanH1 then Exit(-1);
+  y := Exp(2 * x);
+  Result := (y - 1) / (y + 1);
+end;
+
+function F_Round(x: Extended): Extended;
+begin
+  if x < 0 then Exit(-F_Round(-x));
+  Result := Int(x);
+  if Frac(x) >= 0.5 then Result := Result + 1;
+end;
+
+function F_Ceil(x: Extended): Extended;
+begin
+  Result := Int(x);
+  if Frac(x) > 0 then Result := Result + 1;
+end;
+
+function F_Floor(x: Extended): Extended;
+begin
+  Result := Int(x);
+  if Frac(x) < 0 then Result := Result - 1;
+end;
+
+function F_NormAngle(x, factor: Extended; const Suf: string): Extended;
+begin
+  Result := 0;
+  if not AngleOK(x, Suf) then Exit;
+  Result := x - Int(x / factor) * factor;
+  if Result < 0 then Result := Result + factor;
+end;
+
 function CallStd(a: Extended; const Fn: string): Extended;
+var t: Extended;
 begin
   case Fn of
-    'sin'  : Result := Sin(a);
-    'cos'  : Result := Cos(a);
-    'tan'  : Result := Tan(a);
-    'ctan' : begin
-             if a = 0 then begin SetErr('overflow: ctan'); Exit(0); end
-             else Result := Cos(a) / Sin(a);
-             end;
-    'asin' : begin
-             if (a < -1) or (a > 1) then begin SetErr('illegal |arg|>1: asin'); Exit(0); end;
-             Result := arcsin(a);
-             end;
-    'acos' : begin
-             if (a < -1) or (a > 1) then begin SetErr('illegal |arg|>1: acos'); Exit(0); end;
-             Result := arccos(a);
-             end;
+    'sin'  : Result := F_Sin(a, Fn);
+    'cos'  : Result := F_Cos(a, Fn);
+    'tan','tg': Result := ChkDiv(F_Sin(a, Fn), F_Cos(a, Fn), Fn);
+    'cot','ctg': Result := ChkDiv(F_Cos(a, Fn), F_Sin(a, Fn), Fn);
+    'sec'  : Result := ChkDiv(1, F_Cos(a, Fn), Fn);
+    'csc'  : Result := ChkDiv(1, F_Sin(a, Fn), Fn);
+    'asin' : Result := F_ASin(a, Fn);
+    'acos' : Result := F_ACos(a, Fn);
     'atan' : Result := ArcTan(a);
-    'actan': begin
-             if a = 0 then begin SetErr('overflow: actan'); Exit(0); end;
-             Result := Pi / 2 - ArcTan(a);
-             end;
-    'sinh' : Result := (Exp(a) - Exp(-a)) / 2;
-    'cosh' : Result := (Exp(a) + Exp(-a)) / 2;
-    'tanh' : Result := (Exp(2 * a) - 1) / (Exp(2 * a) + 1);
-    'asinh': Result := Ln(a + Sqrt(a * a + 1));
-    'acosh': begin
-             if a < 1 then begin SetErr('illegal arg<1: acosh'); Exit(0); end;
-             Result := Ln(a + Sqrt(a * a - 1));
-             end;
-    'atanh': begin
-             if (a = 1) or (a = -1) then begin SetErr('overflow: atanh'); Exit(0); end;
-             if (a > 1) or (a < -1) then begin SetErr('illegal |arg|>1: atanh'); Exit(0); end;
-             Result := 0.5 * Ln((1 + a) / (1 - a));
-             end;
-    'exp'  : Result := Exp(a);
-    'ln'   : begin
-             if a < 0 then begin SetErr('illegal arg<0: ln'); Exit(0); end;
-             if a = 0 then begin SetErr('overflow: ln'); Exit(0); end;
-             Result := Ln(a);
-             end;
-    'log'  : begin
-             if a < 0 then begin SetErr('illegal arg<0: log'); Exit(0); end;
-             if a = 0 then begin SetErr('overflow: log'); Exit(0); end;
-             Result := Ln(a) / Ln(10);
-             end;
+    'acot' : Result := Pi / 2 - ArcTan(a);
+    'asec' : begin t := ChkDiv(1, a, Fn); if Err = '' then Result := F_ACos(t, Fn); end;
+    'acsc' : begin t := ChkDiv(1, a, Fn); if Err = '' then Result := F_ASin(t, Fn); end;
+    'sinh','sh'  : Result := F_SinH(a, Fn);
+    'cosh','ch'  : Result := F_CosH(a, Fn);
+    'tanh','th'  : Result := F_TanH(a, Fn);
+    'coth','cth' : Result := ChkDiv(1, F_TanH(a, Fn), Fn);
+    'sech' : Result := ChkDiv(1, F_CosH(a, Fn), Fn);
+    'csch' : Result := ChkDiv(1, F_SinH(a, Fn), Fn);
+    'asinh': Result := F_ASinH(a, Fn);
+    'acosh': Result := F_ACosH(a, Fn);
+    'atanh': Result := F_ATanH(a, Fn);
+    'acoth': Result := F_ACotH(a, Fn);
+    'asech': begin t := ChkDiv(1, a, Fn); if Err = '' then Result := F_ACosH(t, Fn); end;
+    'acsch': begin t := ChkDiv(1, a, Fn); if Err = '' then Result := F_ASinH(t, Fn); end;
+    'exp'  : Result := ChkExp(a, Fn);
+    'ln','log' : Result := ChkLn(a, Fn);
+    'lg','log10' : begin t := ChkLn(a, Fn); if Err = '' then Result := t / Ln(10); end;
+    'log2' : begin t := ChkLn(a, Fn); if Err = '' then Result := t / Ln(2); end;
     'sqr'  : Result := a * a;
-    'sqrt' : begin
-             if a < 0 then begin SetErr('illegal arg<0: sqrt'); Exit(0); end;
-             Result := Sqrt(a);
-             end;
+    'sqrt' : Result := F_Sqrt(a, Fn);
     'fact' : Result := Fact(a);
     'abs'  : Result := Abs(a);
     'sign' : if a > 0 then Result := 1 else if a < 0 then Result := -1 else Result := 0;
     'int'  : Result := Int(a);
     'frac' : Result := Frac(a);
+    'round': Result := F_Round(a);
+    'ceil' : Result := F_Ceil(a);
+    'floor': Result := F_Floor(a);
     'rad'  : Result := a * (Pi / 180);
-    'deg'  : Result := a * (180 / Pi);
+    'deg'  : Result := ChkMul(a, 180 / Pi, Fn);
+    'ndeg' : Result := F_NormAngle(a, 360, Fn);
+    'nrad' : Result := F_NormAngle(a, 2 * Pi, Fn);
     else Result := 0; SetErr('unknown function: ' + Fn);
   end;
   if (IsInfinite(Result) or IsNan(Result)) and (Err = '') then SetErr('overflow: ' + Fn);
 end;
 
 function CallList(const Fn: string; const A: array of Extended): Extended;
-var i, n: Integer; r: Extended;
+var i, n: Integer; r, s: Extended; n1, n2: LongInt;
 begin
   n := Length(A);
   case Fn of
-    'sum' : begin r := 0; for i := 0 to n - 1 do r := r + A[i]; Result := r; end;
-    'prod': begin r := 1; for i := 0 to n - 1 do r := r * A[i]; Result := r; end;
-    'avg' : begin r := 0; for i := 0 to n - 1 do r := r + A[i];
-                  if n = 0 then Result := 0 else Result := r / n; end;
-    'geo' : begin r := 1; for i := 0 to n - 1 do r := r * A[i];
-                  if n = 0 then Result := 0
-                  else if r = 0 then Result := 0
-                  else if r < 0 then begin
-                    r := -r;
-                    Result := -PowE(r, 1 / n);
-                  end else
-                    Result := PowE(r, 1 / n);
+    'log' : begin
+              if n <> 2 then begin SetErr('invalid arg list: log'); Exit(0); end;
+              Result := ChkDiv(ChkLn(A[1], Fn), ChkLn(A[0], Fn), Fn);
+            end;
+    'gcd' : begin
+              for i := 0 to n - 1 do begin
+                if IsRealX(A[i]) then begin SetErr('illegal real arg: gcd'); Exit(0); end;
+                if not IsDWordX(A[i]) then begin SetErr('overflow in int arg: gcd'); Exit(0); end;
+              end;
+              n1 := Trunc(A[0]);
+              for i := 1 to n - 1 do begin
+                n2 := Abs(Trunc(A[i]));
+                n1 := Abs(n1);
+                while n2 <> 0 do begin
+                  r := n1 mod n2; n1 := n2; n2 := Trunc(r);
+                end;
+              end;
+              Result := Abs(n1);
+            end;
+    'lcm' : begin
+              for i := 0 to n - 1 do begin
+                if IsRealX(A[i]) then begin SetErr('illegal real arg: lcm'); Exit(0); end;
+                if not IsDWordX(A[i]) then begin SetErr('overflow in int arg: lcm'); Exit(0); end;
+              end;
+              r := Abs(A[0]);
+              for i := 1 to n - 1 do begin
+                if (r = 0) or (A[i] = 0) then begin r := 0; Continue; end;
+                n1 := Trunc(r);
+                n2 := Abs(Trunc(A[i]));
+                while n2 <> 0 do begin
+                  s := n1 mod n2; n1 := n2; n2 := Trunc(s);
+                end;
+                r := Abs((Trunc(r) div n1) * Trunc(A[i]));
+              end;
+              Result := r;
+            end;
+    'poly': begin
+              // poly(x, a0, a1, ...) = a0 + a1*x + a2*x**2 + ...
+              Result := A[n - 1];
+              for i := n - 1 downto 2 do
+                Result := Result * A[0] + A[i - 1];
+            end;
+    'sum' : begin Result := 0; for i := 0 to n - 1 do Result := Result + A[i]; end;
+    'prod','mul' : begin Result := 1; for i := 0 to n - 1 do Result := Result * A[i]; end;
+    'avg' : begin Result := 0; for i := 0 to n - 1 do Result := Result + A[i]; Result := Result / n; end;
+    'sumsq': begin Result := 0; for i := 0 to n - 1 do Result := Result + A[i] * A[i]; end;
+    'gavg': begin
+              for i := 0 to n - 1 do if A[i] < 0 then begin SetErr('illegal arg<0: gavg'); Exit(0); end;
+              Result := 1; for i := 0 to n - 1 do Result := Result * A[i];
+              Result := PowE(Result, 1 / n);
+            end;
+    'havg': begin
+              for i := 0 to n - 1 do if A[i] < 0 then begin SetErr('illegal arg<0: havg'); Exit(0); end;
+              Result := 0;
+              for i := 0 to n - 1 do Result := Result + 1 / A[i];
+              Result := n / Result;
+            end;
+    'qavg','rms': begin
+              Result := 0; for i := 0 to n - 1 do Result := Result + A[i] * A[i];
+              Result := Sqrt(Result / n);
+            end;
+    'norm': begin
+              Result := 0; for i := 0 to n - 1 do Result := Result + A[i] * A[i];
+              Result := Sqrt(Result);
+            end;
+    'vart': begin
+              s := 0; for i := 0 to n - 1 do s := s + A[i];
+              s := s / n;
+              Result := 0; for i := 0 to n - 1 do begin
+                r := A[i] - s;
+                Result := Result + r * r;
+              end;
+            end;
+    'varp','var' : begin
+              s := 0; for i := 0 to n - 1 do s := s + A[i];
+              s := s / n;
+              Result := 0; for i := 0 to n - 1 do begin
+                r := A[i] - s;
+                Result := Result + r * r;
+              end;
+              Result := Result / n;
+            end;
+    'vars': begin
+              s := 0; for i := 0 to n - 1 do s := s + A[i];
+              s := s / n;
+              Result := 0; for i := 0 to n - 1 do begin
+                r := A[i] - s;
+                Result := Result + r * r;
+              end;
+              Result := Result / (n - 1);
+            end;
+    'std' : begin
+              s := 0; for i := 0 to n - 1 do s := s + A[i];
+              s := s / n;
+              Result := 0; for i := 0 to n - 1 do begin
+                r := A[i] - s;
+                Result := Result + r * r;
+              end;
+              Result := Sqrt(Result / (n - 1));
+            end;
+    'stdp': begin
+              s := 0; for i := 0 to n - 1 do s := s + A[i];
+              s := s / n;
+              Result := 0; for i := 0 to n - 1 do begin
+                r := A[i] - s;
+                Result := Result + r * r;
+              end;
+              Result := Sqrt(Result / n);
             end;
     'min' : begin Result := A[0]; for i := 1 to n - 1 do if A[i] < Result then Result := A[i]; end;
     'max' : begin Result := A[0]; for i := 1 to n - 1 do if A[i] > Result then Result := A[i]; end;
-    'poly': begin
-              if n < 2 then begin SetErr('missing arg2: poly'); Exit(0); end;
-              // poly(x, a0, a1, ..., ak) = a0 + a1*x + ... + ak*x^k
-              Result := 0;
-              for i := n - 1 downto 1 do
-                Result := Result * A[0] + A[i];
-            end;
     else Result := 0; SetErr('unknown list function: ' + Fn);
   end;
   if (IsInfinite(Result) or IsNan(Result)) and (Err = '') then SetErr('overflow: ' + Fn);
@@ -355,20 +651,29 @@ end;
 
 function IsListFunc(const N: string): Boolean;
 begin
-  Result := (N = 'sum') or (N = 'prod') or (N = 'avg') or (N = 'geo') or
-            (N = 'min') or (N = 'max');
+  Result := (N = 'sum') or (N = 'sumsq') or (N = 'prod') or (N = 'mul') or
+            (N = 'avg') or (N = 'gavg') or (N = 'havg') or (N = 'qavg') or
+            (N = 'rms') or (N = 'norm') or (N = 'vart') or (N = 'varp') or
+            (N = 'var') or (N = 'vars') or (N = 'std') or (N = 'stdp') or
+            (N = 'min') or (N = 'max') or (N = 'gcd') or (N = 'lcm') or
+            (N = 'log') or (N = 'poly');
 end;
 
 function IsBuiltinName(const N: string): Boolean;
-const B: array[0..35] of string =
-  ('sin','cos','tan','ctan','asin','acos','atan','actan',
-   'sinh','cosh','tanh','asinh','acosh','atanh',
-   'exp','ln','log','sqr','sqrt','fact','abs','sign','int','frac','rad','deg',
-   'sum','prod','avg','geo','min','max','poly','pi','e','');
+const B: array[0..72] of string =
+  ('sin','cos','tan','tg','cot','ctg','sec','csc',
+   'asin','acos','atan','acot','asec','acsc',
+   'sinh','sh','cosh','ch','tanh','th','coth','cth','sech','csch',
+   'asinh','acosh','atanh','acoth','asech','acsch',
+   'exp','ln','log','lg','log10','log2','sqr','sqrt','fact','abs','sign',
+   'int','frac','round','ceil','floor','rad','deg','ndeg','nrad',
+   'sum','sumsq','prod','mul','avg','gavg','havg','qavg','rms','norm',
+   'vart','varp','var','vars','std','stdp','min','max','gcd','lcm','poly',
+   'pi','e');
 var i: Integer;
 begin
   Result := False;
-  for i := 0 to 34 do
+  for i := Low(B) to High(B) do
     if B[i] = N then begin Result := True; Exit; end;
 end;
 
@@ -376,11 +681,11 @@ function LookupVar(const N: string; out V: Extended): Boolean;
 var i: Integer;
 begin
   for i := High(LocalVars) downto 0 do
-    if LocalVars[i].Name = N then begin V := LocalVars[i].Val; Exit(True); end;
+    if CompareText(LocalVars[i].Name, N) = 0 then begin V := LocalVars[i].Val; Exit(True); end;
   for i := 0 to DefCount - 1 do
-    if (not Defs[i].IsFunc) and (Defs[i].Name = N) then begin V := Defs[i].Val; Exit(True); end;
+    if (not Defs[i].IsFunc) and (CompareText(Defs[i].Name, N) = 0) then begin V := Defs[i].Val; Exit(True); end;
   if N = 'pi' then begin V := Pi; Exit(True); end;
-  if N = 'e'  then begin V := Exp(1); Exit(True); end;
+  if N = 'e'  then begin V := EConst; Exit(True); end;
   Result := False;
 end;
 
@@ -388,7 +693,7 @@ function FindUserFunc(const N: string; WantArgs: Integer; out Idx: Integer): Boo
 var i: Integer;
 begin
   for i := 0 to DefCount - 1 do
-    if Defs[i].IsFunc and (Defs[i].Name = N) and (Defs[i].NumArgs = WantArgs) then
+    if Defs[i].IsFunc and (Defs[i].NumArgs = WantArgs) and (CompareText(Defs[i].Name, N) = 0) then
     begin Idx := i; Exit(True); end;
   Result := False;
 end;
@@ -456,23 +761,16 @@ begin
 
   if FindUserFunc(Name, n, di) then Exit(EvalUserFunc(di, Copy(Args, 0, n)));
 
-  if (Name = 'log') and (n = 2) then begin
-    if Args[1] <= 0 then begin SetErr('overflow: log'); Exit(0); end;
-    if (Args[0] <= 0) or (Args[0] = 1) then begin SetErr('overflow: log'); Exit(0); end;
-    Result := Ln(Args[1]) / Ln(Args[0]);
-    if IsInfinite(Result) or IsNan(Result) then SetErr('overflow: log');
-    Exit;
-  end;
-
   Result := CallList(Name, Copy(Args, 0, n));
 end;
 
 function Precedence(const Op: string): Integer;
 begin
   case Op of
-    '*','/','**','//','%' : Result := 50;
+    '**'                  : Result := 60;
+    '*','/','//','%'      : Result := 50;
     '+','-'               : Result := 40;
-    '&','|','^','&&','||','^^','<<','>>' : Result := 30;
+    '&','|','^','&&','||','^^','<<','>>','>>>' : Result := 30;
     '=','==','<>','!=','<','>','<=','>=' : Result := 20;
     else Result := 0;
   end;
@@ -489,6 +787,7 @@ begin
          else if PeekC2 = '>' then Op := '<>'
          else if PeekC2 = '<' then Op := '<<' else Op := '<';
     '>': if PeekC2 = '=' then Op := '>='
+         else if (PeekC2 = '>') and (PeekC3 = '>') then Op := '>>>'
          else if PeekC2 = '>' then Op := '>>' else Op := '>';
     '=': if PeekC2 = '=' then Op := '==' else Op := '=';
     '!': if PeekC2 = '=' then Op := '!=' else Op := '!';
@@ -502,7 +801,7 @@ begin
 end;
 
 function ApplyOp(const Op: string; a, b: Extended): Extended;
-var ia, ib: Int64;
+var n1, n2: LongInt;
 begin
   case Op of
     '+'  : Result := a + b;
@@ -514,18 +813,18 @@ begin
            end;
     '**' : Result := PowE(a, b);
     '//' : begin
-            if not ToInt(a, '//', ia) then Exit(0);
-            if not ToInt(b, '//', ib) then Exit(0);
-            if ib = 0 then begin SetErr('illegal arg2=0: //'); Exit(0); end;
-            Result := Extended(ia div ib);
+            if not ToIntN(a, '//', 1, n1) then Exit(0);
+            if not ToIntN(b, '//', 2, n2) then Exit(0);
+            if n2 = 0 then begin SetErr('illegal arg2=0: //'); Exit(0); end;
+            Result := Extended(n1 div n2);
            end;
     '%'  : begin
-            if not ToInt(a, '%', ia) then Exit(0);
-            if not ToInt(b, '%', ib) then Exit(0);
-            if ib = 0 then begin SetErr('illegal arg2=0: %'); Exit(0); end;
-            Result := Extended(ia mod ib);
+            if not ToIntN(a, '%', 1, n1) then Exit(0);
+            if not ToIntN(b, '%', 2, n2) then Exit(0);
+            if n2 = 0 then begin SetErr('illegal arg2=0: %'); Exit(0); end;
+            Result := Extended(n1 mod n2);
            end;
-    '&','|','^','<<','>>' : Result := BitOp2(Op, a, b);
+    '&','|','^','<<','>>','>>>' : Result := BitOp2(Op, a, b);
     '=','==' : Result := Ord(a = b);
     '<>','!=': Result := Ord(a <> b);
     '<'      : Result := Ord(a < b);
@@ -794,6 +1093,7 @@ begin
            ((S[P] >= '0') and (S[P] <= '9')) or (S[P] = '_')) do begin
       Name := Name + S[P]; Inc(P);
     end;
+    Name := LowerCase(Name);       // v1.06: identifiers are case-insensitive
     SkipWS;
     if PeekC = '(' then begin
       NextC;
@@ -859,7 +1159,7 @@ begin
   if DefCount >= MaxDefs then begin SetErr('too many definitions'); Exit; end;
   // replace existing
   for i := 0 to DefCount - 1 do
-    if Defs[i].Name = Name then begin
+    if CompareText(Defs[i].Name, Name) = 0 then begin
       Defs[i].IsFunc := IsFunc;
       Defs[i].NumArgs := NumArgs;
       Defs[i].Body := Body;
@@ -1006,12 +1306,56 @@ end;
    123456789.123456789 -> 123456789.123456789, 2**1000 -> 1.07150860718627E+0301) }
 
 function TrimTrailZeros(const s: string): string;
-var i: Integer;
+var i, p: Integer;
 begin
+  p := Pos('.', s);
+  if p = 0 then begin Result := s; Exit; end;   // integer-looking: keep digits
   i := Length(s);
-  while (i > 0) and (s[i] = '0') do Dec(i);
-  if (i > 0) and (s[i] = '.') then Dec(i);
+  while (i > p) and (s[i] = '0') do Dec(i);
+  if i = p then Dec(i);
   Result := Copy(s, 1, i);
+end;
+
+{ scientific with an 18-significant-digit mantissa and a sign+4-digit
+  exponent (FPC FloatToStrF caps ffExponent mantissas at 17 sig digits) }
+function FmtSci18(v: Extended): string;
+var
+  av, s, p: Extended;
+  e0, i: Integer;
+  mant, es: string;
+begin
+  Result := '';
+  if v < 0 then begin Result := '-'; av := -v; end else av := v;
+  e0 := Trunc(Log10(av));
+  p := 1;
+  for i := 1 to e0 do p := p * 10;
+  s := av / p;
+  while s >= 10 do begin
+    Inc(e0);
+    p := p * 10;
+    s := av / p;
+  end;
+  while s < 1 do begin
+    Dec(e0);
+    p := p / 10;
+    s := av / p;
+  end;
+  mant := FloatToStrF(s, ffFixed, 0, 17);
+  if (Length(mant) >= 2) and (mant[1] = '1') and (mant[2] = '0') then begin
+    Inc(e0);
+    p := p * 10;
+    s := av / p;
+    mant := FloatToStrF(s, ffFixed, 0, 17);
+  end;
+  es := IntToStr(Abs(e0));
+  while Length(es) < 4 do es := '0' + es;
+  if e0 < 0 then es := '-' + es else es := '+' + es;
+  Result := Result + mant + 'E' + es;
+end;
+
+function IsNegZero(v: Extended): Boolean;
+begin
+  Result := (v = 0) and (1 / v < 0);
 end;
 
 function FmtFixed(v: Extended): string;
@@ -1041,15 +1385,17 @@ function FmtNumber(v: Extended): string;
 var i64: Int64;
 begin
   if IsNan(v) or IsInfinite(v) then begin Result := 'ERROR'; Exit; end;
-  if Frac0(v) and (v >= -9.223372036854775808e18) and (v <= 9.223372036854775807e18) then begin
+  { exact integer within +/-1e18 -> plain integer digits }
+  if Frac0(v) and (v >= -1e18) and (v <= 1e18) then begin
+    if IsNegZero(v) then begin Result := '-0'; Exit; end;
     i64 := Round(v);
     Result := IntToStr(i64);
     Exit;
   end;
-  if Abs(v) < 1e18 then
+  if Abs(v) <= 1e18 then
     Result := FmtFixed(v)
   else
-    Result := FloatToStrF(v, ffExponent, 15, 4);
+    Result := FmtSci18(v);
 end;
 
 

@@ -31,7 +31,6 @@ ERROR_EXPRS = [
  "2+",
  "2 3",
  "sin",
- "SIN(1)",
  "unknownfunc(3)",
  "x",
  ")",
@@ -125,7 +124,7 @@ SPOTS = [
   "1"
  ],
  [
-  "geo(2,8)",
+  "gavg(2,8)",
   "4"
  ],
  [
@@ -201,6 +200,9 @@ VALUE_EXPRS = [
  "ln(1)",
  "log(100)",
  "log(10,100)",
+ "SIN(1)",
+ "lg(100)",
+ "log2(8)",
  "fact(5)",
  "fact(0)",
  "abs(-3)",
@@ -212,8 +214,8 @@ VALUE_EXPRS = [
  "rad(180)",
  "deg(pi)",
  "sqr(5)",
- "ctan(pi/4)",
- "actan(1)",
+ "cot(pi/4)",
+ "acot(1)",
  "sinh(1)",
  "cosh(1)",
  "tanh(1)",
@@ -226,7 +228,7 @@ VALUE_EXPRS = [
  "sum(1,2,3)",
  "prod(2,3,4)",
  "avg(1,2,3)",
- "geo(2,8)",
+ "gavg(2,8)",
  "min(3,1,2)",
  "max(3,1,2)",
  "poly(2,1,2,3)",
