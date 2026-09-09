@@ -109,13 +109,26 @@ persist to `ecwcalc.ini` next to the binary.
   80-bit maximum rejected as `invalid expression`).
 - Differential suite: `tests/diff_oracle.py` / `tests/diff_ref.py` compare
   against the official v1.06 console engine (`ec.exe`) under Wine; the
-  captured corpus lives in `tests/oracle_corpus.jsonl` (484/493 byte-exact).
-  Remaining mismatches are (a) decimal-printer model for typed literals that
-  exceed 18 significant digits (`123456789012345.6789`), (b) transcendental
-  values at extreme magnitudes where the original's `exp` differs from FPC's
-  in the last printed digit (`exp(10000)`, `sinh(1e4)`), and (c) last-ulp
-  parse ties on 20-digit literals. `tests/rtl_audit.pas`/GUI per-format
-  (Hex/Bin/Oct/Exp) oracle capture is still in progress.
+  captured corpus lives in `tests/oracle_corpus.jsonl` (484/493 byte-exact
+  with 7 documented, accepted differences).
+- **Fidelity vs accuracy policy**: where the v1.06 oracle is numerically
+  *less* accurate than FPC, the port deliberately keeps FPC's correct math
+  rather than reproducing the oracle's rounding. Documented in
+  `tests/accepted_differences.jsonl` (each entry lists subject/oracle values
+  and why FPC is kept) and pinned by `tests/battery.py`'s FPC-accuracy
+  section so they cannot silently regress:
+  - `exp`/`sinh`/`cosh` at huge |x| — the oracle uses the Delphi 3 x87
+    `FLDL2E`/`F2XM1` reduction whose error grows with x (457 ulp at
+    `exp(11356)`); FPC `Exp` is correctly rounded (≤1 ulp).
+  - the `e` constant — the oracle stores the 19-digit literal
+    `2.718281828459045235` (1 ulp low); the port uses nearest-extended true e.
+  - `12345678901234567890` display — the oracle's 18-sig scientific printer
+    truncates; FPC's rounds correctly (both engines store the value exactly).
+  Remaining open mismatches are printer-model work: (a) typed literals over
+  18 significant digits (`123456789012345.6789` — oracle echoes the typed
+  decimal, subject prints 18-sig), (b) `ln(1e-4932)` last-digit (oracle
+  marginally closer; sub-ulp parse/print boundary at the tiny end).
+  GUI per-format (Hex/Bin/Oct/Exp) oracle capture is still in progress.
 
 ## License
 
