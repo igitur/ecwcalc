@@ -69,7 +69,7 @@
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
-        <Filename Value="viewfmt.pas"/>
+        <Filename Value="numfmt.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>

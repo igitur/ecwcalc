@@ -49,7 +49,7 @@ implementation
 {$R *.lfm}
 
 uses
-  viewfmt,
+  numfmt,
   shellswitch;
 
 constructor TTinyForm.Create(AOwner: TComponent);
@@ -134,13 +134,13 @@ procedure TTinyForm.ShowResult;
 begin
   if not HaveVal then Exit;
   case FmtIdx of
-    1: EditOut.Text := RowDecFixed(LastVal, cfg.Prec, cfg.NoTrail0);
-    2: EditOut.Text := RowHex32(LastVal, cfg.NoLead0);
-    3: EditOut.Text := RowBin32(LastVal, cfg.NoLead0);
-    4: EditOut.Text := RowOct32(LastVal, cfg.NoLead0);
-    5: EditOut.Text := RowExp(LastVal, cfg.Prec, cfg.NoTrail0);
+    1: EditOut.Text := numfmt.Format(LastVal, DecFixedOpt(cfg.Prec, cfg.NoTrail0));
+    2: EditOut.Text := numfmt.Format(LastVal, RadixOpt(nmHex, cfg.NoLead0, cfg.UnsignedHex));
+    3: EditOut.Text := numfmt.Format(LastVal, RadixOpt(nmBin, cfg.NoLead0, cfg.UnsignedHex));
+    4: EditOut.Text := numfmt.Format(LastVal, RadixOpt(nmOct, cfg.NoLead0, cfg.UnsignedHex));
+    5: EditOut.Text := numfmt.Format(LastVal, ExpOpt(cfg.Prec));
   else
-    EditOut.Text := RowDec(LastVal, cfg.Prec, cfg.NoTrail0);   // Auto (dec/exp)
+    EditOut.Text := numfmt.Format(LastVal, AutoOpt(cfg.Prec, cfg.NoTrail0));   // Auto (dec/exp)
   end;
 end;
 

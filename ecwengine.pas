@@ -17,29 +17,18 @@ uses SysUtils, Math;
 procedure InitEngine;                       // call once at program start
 procedure SetUnsignedHex(b: Boolean);
 procedure SetSepMode(m: Integer);
-function  DecimalSepChar: Char;
-function  ListSepChar: Char;
 
 // Evaluate a full expression line; returns True on success, False on error.
 // On success, V holds the result.  On error, ErrMsg holds the message.
 function  EvalExpr(const Expr: string; out V: Extended; out ErrMsg: string): Boolean;
 
-// Output formatting matching the original console.
-function  FmtNumber(v: Extended): string;   // dec/exp auto
-function  FmtHex32(v: Extended): string;    // 8 hex digits (32-bit)
-function  FmtBin32(v: Extended): string;    // 32 bits
-function  FmtOct32(v: Extended): string;    // 11 octal digits
-function  FmtExp(v: Extended): string;      // 0.00000000000000000E+0000
-
 // User variables/functions (the Definitions tab)
 function  AddDefDecl(const Decl: string): string;  // '' = ok, else error msg
 function  NumDefs: Integer;
 function  DefName(i: Integer): string;
-function  DefIsFunc(i: Integer): Boolean;
 function  DefDecl(i: Integer): string;             // "name(args)=body" / "name=value"
 procedure DeleteDef(i: Integer);
 procedure MoveDef(i: Integer; Dir: Integer);
-procedure ClearDefs;
 
 // ecw_defs.ini persistence (one declaration per line, same format as the
 // original ECW 'Definitions' file).  LoadDefsFile appends to the current
@@ -56,9 +45,6 @@ implementation
 
   CLI front end: ./ec.lpr  (build with ./build.sh cli)
   ============================================================================ }
-
-const
-  SavedMask: TFPUExceptionMask = [];
 
 const
   MaxArgs = 4000;
@@ -151,11 +137,6 @@ begin
     'A'..'F': Result := Ord(C) - 55;
     else Result := -1;
   end;
-end;
-
-function Frac0(v: Extended): Boolean; inline;
-begin
-  Result := Frac(v) = 0;
 end;
 
 { ---- integer-arg semantics, matching StdMath v1.06 (_int.pas) ----
@@ -664,16 +645,6 @@ begin
     else Result := 0; SetErr('unknown list function: ' + Fn);
   end;
   if (IsInfinite(Result) or IsNan(Result)) and (Err = '') then SetErr('overflow: ' + Fn);
-end;
-
-function IsListFunc(const N: string): Boolean;
-begin
-  Result := (N = 'sum') or (N = 'sumsq') or (N = 'prod') or (N = 'mul') or
-            (N = 'avg') or (N = 'gavg') or (N = 'havg') or (N = 'qavg') or
-            (N = 'rms') or (N = 'norm') or (N = 'vart') or (N = 'varp') or
-            (N = 'var') or (N = 'vars') or (N = 'std') or (N = 'stdp') or
-            (N = 'min') or (N = 'max') or (N = 'gcd') or (N = 'lcm') or
-            (N = 'log') or (N = 'poly');
 end;
 
 function IsBuiltinName(const N: string): Boolean;
@@ -1303,127 +1274,13 @@ begin
   end;
 end;
 
-{ ---------- output formatting (matches original console) ---------- }
-
-{ The original (ec.exe / Wecw_Proc FormatDec) displays:
-    |v| < 1        : 17 decimal places, trailing zeros trimmed
-    1 <= |v| < 1e18: 18 significant digits, trailing zeros trimmed
-    |v| >= 1e18    : scientific, 15 significant digits, 4-digit exponent
-  (e.g. 1/3 -> 0.33333333333333333, 100/3 -> 33.3333333333333333,
-   123456789.123456789 -> 123456789.123456789, 2**1000 -> 1.07150860718627E+0301) }
-
-function TrimTrailZeros(const s: string): string;
-var i, p: Integer;
-begin
-  p := Pos('.', s);
-  if p = 0 then begin Result := s; Exit; end;   // integer-looking: keep digits
-  i := Length(s);
-  while (i > p) and (s[i] = '0') do Dec(i);
-  if i = p then Dec(i);
-  Result := Copy(s, 1, i);
-end;
-
-{ scientific with an 18-significant-digit mantissa and a sign+4-digit
-  exponent (FPC FloatToStrF caps ffExponent mantissas at 17 sig digits) }
-function FmtSci18(v: Extended): string;
-var
-  av, s, p: Extended;
-  e0, i, a, b: Integer;
-  P18: Extended;
-  mant, es: string;
-begin
-  Result := '';
-  if v < 0 then begin Result := '-'; av := -v; end else av := v;
-  e0 := Trunc(Log10(av));
-  p := 1;
-  if e0 > 0 then begin
-    { 10^18 is exactly representable in Extended: chunk the exponent so the
-      power-of-ten is built with ~e0/18 (<= 275) roundings, not e0 of them. }
-    P18 := 1e18;
-    a := e0 div 18;
-    b := e0 mod 18;
-    for i := 1 to a do p := p * P18;
-    for i := 1 to b do p := p * 10;
-  end else if e0 < 0 then begin
-    for i := -1 downto e0 do p := p / 10;
-  end;
-  s := av / p;
-  while s >= 10 do begin
-    Inc(e0);
-    p := p * 10;
-    s := av / p;
-  end;
-  while s < 1 do begin
-    Dec(e0);
-    p := p / 10;
-    s := av / p;
-  end;
-  mant := FloatToStrF(s, ffFixed, 0, 17);
-  if (Length(mant) >= 2) and (mant[1] = '1') and (mant[2] = '0') then begin
-    Inc(e0);
-    p := p * 10;
-    s := av / p;
-    mant := FloatToStrF(s, ffFixed, 0, 17);
-  end;
-  es := IntToStr(Abs(e0));
-  while Length(es) < 4 do es := '0' + es;
-  if e0 < 0 then es := '-' + es else es := '+' + es;
-  Result := Result + mant + 'E' + es;
-end;
-
-function IsNegZero(v: Extended): Boolean;
-begin
-  Result := (v = 0) and (1 / v < 0);
-end;
-
-function FmtFixed(v: Extended): string;
-var
-  av: Extended;
-  dec: Integer;
-  s: string;
-  i, intdigits: Integer;
-begin
-  av := Abs(v);
-  if av < 1 then begin
-    dec := 17;                     { 17 decimal places }
-  end else begin
-    { 18 significant digits: count integer digits robustly }
-    s := FloatToStrF(av, ffFixed, 0, 17);   { enough decimals to see int part }
-    intdigits := 0;
-    for i := 1 to Length(s) do
-      if s[i] in ['0'..'9'] then Inc(intdigits) else Break;
-    dec := 18 - intdigits;
-    if dec < 0 then dec := 0;
-  end;
-  Result := TrimTrailZeros(FloatToStrF(v, ffFixed, 0, dec));
-  if (v < 0) and (Result = '0') then Result := '-0';
-end;
-
-function FmtNumber(v: Extended): string;
-var i64: Int64;
-begin
-  if IsNan(v) or IsInfinite(v) then begin Result := 'ERROR'; Exit; end;
-  { exact integer within +/-1e18 -> plain integer digits }
-  if Frac0(v) and (v >= -1e18) and (v <= 1e18) then begin
-    if IsNegZero(v) then begin Result := '-0'; Exit; end;
-    i64 := Round(v);
-    Result := IntToStr(i64);
-    Exit;
-  end;
-  if Abs(v) <= 1e18 then
-    Result := FmtFixed(v)
-  else
-    Result := FmtSci18(v);
-end;
-
-
-
 { ---------- interface implementations ---------- }
 
 procedure InitEngine;
+var M: TFPUExceptionMask;
 begin
-  SavedMask := GetExceptionMask;
-  SetExceptionMask(SavedMask + [exInvalidOp, exZeroDivide, exOverflow, exUnderflow]);
+  M := GetExceptionMask;
+  SetExceptionMask(M + [exInvalidOp, exZeroDivide, exOverflow, exUnderflow]);
 end;
 
 procedure SetUnsignedHex(b: Boolean);
@@ -1434,16 +1291,6 @@ end;
 procedure SetSepMode(m: Integer);
 begin
   SepMode := m;
-end;
-
-function DecimalSepChar: Char;
-begin
-  Result := DecimalSep;
-end;
-
-function ListSepChar: Char;
-begin
-  Result := ListSepC;
 end;
 
 function EvalExpr(const Expr: string; out V: Extended; out ErrMsg: string): Boolean;
@@ -1462,94 +1309,6 @@ begin
   else
     ErrMsg := Err;
 end;
-
-{ 32-bit helpers: match the original's hex/bin/oct result labels.
-  The original shows the result as a 32-bit value (8 hex / 32 bin /
-  11 oct digits, full width), with unsigned interpretation when
-  UnsignedHex is on.  When the integer part does not fit in a signed
-  32-bit value the original prints 'overflow' instead of a number. }
-
-function Trunc32(v: Extended): LongWord;
-var i: Int64;
-begin
-  if IsNan(v) or IsInfinite(v) then begin Result := 0; Exit; end;
-  i := Trunc(v);
-  Result := LongWord(i and $FFFFFFFF);
-end;
-
-function Int32RangeOK(v: Extended): Boolean;
-begin
-  Result := False;
-  if IsNan(v) or IsInfinite(v) then Exit;
-  Result := (Int(v) >= -2147483648.0) and (Int(v) <= 2147483647.0);
-end;
-
-function FmtHex32(v: Extended): string;
-begin
-  if not Int32RangeOK(v) then begin Result := 'overflow'; Exit; end;
-  if UnsignedHex then
-    Result := IntToHex(Trunc32(v), 8)
-  else
-    Result := IntToHex(LongInt(Trunc32(v)), 8);
-end;
-
-function FmtBin32(v: Extended): string;
-var u: LongWord; i: Integer;
-begin
-  if not Int32RangeOK(v) then begin Result := 'overflow'; Exit; end;
-  u := Trunc32(v);
-  Result := '';
-  for i := 31 downto 0 do
-    Result := Result + Chr(Ord('0') + ((u shr i) and 1));
-end;
-
-function FmtOct32(v: Extended): string;
-var u: LongWord; i: Integer;
-begin
-  if not Int32RangeOK(v) then begin Result := 'overflow'; Exit; end;
-  u := Trunc32(v);
-  Result := '';
-  for i := 10 downto 0 do
-    Result := Result + Chr(Ord('0') + ((u shr (3 * i)) and 7));
-end;
-
-function FmtExp(v: Extended): string;
-var
-  av, s, p, q: Extended;
-  e0, i, a, b: Integer;
-  P18: Extended;
-  mant, es, sg: string;
-begin
-  if IsNan(v) or IsInfinite(v) then begin Result := 'ERROR'; Exit; end;
-  if v = 0 then begin Result := FloatToStrF(v, ffExponent, 18, 4); Exit; end;
-  sg := '';
-  if v < 0 then begin sg := '-'; av := -v; end else av := v;
-  e0 := Trunc(Log10(av));
-  q := 1;
-  if e0 <> 0 then begin
-    a := Abs(e0) div 18;
-    b := Abs(e0) mod 18;
-    P18 := 1e18;
-    for i := 1 to a do q := q * P18;
-    for i := 1 to b do q := q * 10;
-  end;
-  if e0 >= 0 then p := q else p := 1 / q;
-  s := av / p;
-  while s >= 10 do begin Inc(e0); if e0 >= 0 then p := p * 10 else p := p / 10; s := av / p; end;
-  while s < 1 do begin Dec(e0); p := p / 10; s := av / p; end;
-  mant := FloatToStrF(s, ffFixed, 0, 17);
-  if (Length(mant) >= 2) and (mant[1] = '1') and (mant[2] = '0') then begin
-    Inc(e0);
-    p := p * 10;
-    s := av / p;
-    mant := FloatToStrF(s, ffFixed, 0, 17);
-  end;
-  es := IntToStr(Abs(e0));
-  while Length(es) < 4 do es := '0' + es;
-  if e0 < 0 then es := '-' + es else es := '+' + es;
-  Result := sg + mant + 'E' + es;
-end;
-
 
 { ---------- user definitions API ---------- }
 
@@ -1578,11 +1337,6 @@ end;
 function DefName(i: Integer): string;
 begin
   if (i >= 0) and (i < DefCount) then Result := Defs[i].Name else Result := '';
-end;
-
-function DefIsFunc(i: Integer): Boolean;
-begin
-  if (i >= 0) and (i < DefCount) then Result := Defs[i].IsFunc else Result := False;
 end;
 
 function DefDecl(i: Integer): string;
@@ -1620,12 +1374,6 @@ begin
   k := i + Dir;
   if (k < 0) or (k >= DefCount) then Exit;
   Tmp := Defs[i]; Defs[i] := Defs[k]; Defs[k] := Tmp;
-end;
-
-procedure ClearDefs;
-begin
-  SetLength(Defs, 0);
-  DefCount := 0;
 end;
 
 function LoadDefsFile(const AFileName: string): Integer;

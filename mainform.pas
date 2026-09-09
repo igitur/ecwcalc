@@ -56,7 +56,7 @@ implementation
 uses
   Config,          // global config record
   LCLType,
-  viewfmt,
+  numfmt,
   shellswitch;
 
 constructor TCalcForm.Create(AOwner: TComponent);
@@ -127,11 +127,11 @@ begin
     if cfg.ShowErrorStatus then LabelResError.Caption := M else LabelResError.Caption := '';
     Exit;
   end;
-  LabelResDec.Text := RowDec(v, cfg.Prec, cfg.NoTrail0);
-  LabelResHex.Text := RowHex32(v, cfg.NoLead0);
-  LabelResBin.Text := RowBin32(v, cfg.NoLead0);
-  LabelResOct.Text := RowOct32(v, cfg.NoLead0);
-  LabelResExp.Text := RowExp(v, cfg.Prec, cfg.NoTrail0);
+  LabelResDec.Text := numfmt.Format(v, AutoOpt(cfg.Prec, cfg.NoTrail0));
+  LabelResHex.Text := numfmt.Format(v, RadixOpt(nmHex, cfg.NoLead0, cfg.UnsignedHex));
+  LabelResBin.Text := numfmt.Format(v, RadixOpt(nmBin, cfg.NoLead0, cfg.UnsignedHex));
+  LabelResOct.Text := numfmt.Format(v, RadixOpt(nmOct, cfg.NoLead0, cfg.UnsignedHex));
+  LabelResExp.Text := numfmt.Format(v, ExpOpt(cfg.Prec));
   LabelResError.Caption := 'ok';
 end;
 

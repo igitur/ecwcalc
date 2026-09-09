@@ -13,7 +13,7 @@ program ec;
 {$mode objfpc}{$H+}
 
 uses
-  SysUtils, ecwengine;
+  SysUtils, ecwengine, numfmt;
 
 procedure RunOne(const Expr: string);
 var
@@ -22,7 +22,7 @@ var
 begin
   if Trim(Expr) = '' then Exit;
   if EvalExpr(Expr, v, M) then
-    Writeln(FmtNumber(v))
+    Writeln(numfmt.Format(v, AutoOpt(17, True)))
   else
     Writeln('ERROR: ', M);
 end;
