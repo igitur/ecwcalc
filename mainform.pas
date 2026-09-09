@@ -77,7 +77,7 @@ end;
 procedure TCalcForm.ApplyUiConfig;
 begin
   if cfg.StayOnTop then FormStyle := fsStayOnTop else FormStyle := fsNormal;
-  ButtonEval.Enabled := not cfg.AutoCalc;
+  ButtonEval.Visible := not cfg.AutoCalc;
   if cfg.RAlign then begin
     LabelResDec.Alignment := taRightJustify;
     LabelResHex.Alignment := taRightJustify;
@@ -154,7 +154,7 @@ procedure TCalcForm.InputKeyDown(Sender: TObject; var Key: Word;
 begin
   if Key = VK_RETURN then begin
     Key := 0;
-    ButtonEvalClick(Sender);   // Enter == Evaluate (works while it is disabled)
+    ButtonEvalClick(Sender);   // Enter == Evaluate (works while the button is hidden)
   end;
 end;
 
