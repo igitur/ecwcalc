@@ -9,6 +9,7 @@
       <SessionStorage Value="InProjectDir"/>
       <Title Value="ecw"/>
       <UseAppBundle Value="False"/>
+      <ResourceType Value="res"/>
     </General>
     <BuildModes>
       <Item Name="Default" Default="True"/>
@@ -20,13 +21,59 @@
     <RunParams>
       <FormatVersion Value="2"/>
     </RunParams>
+    <RequiredPackages>
+      <Item>
+        <PackageName Value="LCL"/>
+      </Item>
+    </RequiredPackages>
     <Units>
       <Unit>
         <Filename Value="ecw.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit>
       <Unit>
+        <Filename Value="mainform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="CalcForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit>
+      <Unit>
+        <Filename Value="cfgform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="CfgForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit>
+      <Unit>
+        <Filename Value="defform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="DefForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit>
+      <Unit>
+        <Filename Value="tinyform.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="TinyForm"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit>
+      <Unit>
+        <Filename Value="config.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="Config"/>
+      </Unit>
+      <Unit>
         <Filename Value="ecwengine.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="viewfmt.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="shellswitch.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit>
     </Units>
@@ -38,7 +85,7 @@
     </Target>
     <SearchPaths>
       <OtherUnitFiles Value="."/>
-      <UnitOutputDirectory Value="lib-cli"/>
+      <UnitOutputDirectory Value="lib"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

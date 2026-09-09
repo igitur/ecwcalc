@@ -5,11 +5,11 @@ Regression check: every expression must produce the same outcome class as
 the reference batteries (Go/Rust): 29 known-error expressions must yield
 ERROR, the other 110 must yield a value. Plus exact spot-checks.
 
-Usage: battery.py [cli-binary]   (default ./ecw)
+Usage: battery.py [cli-binary]   (default ./ec)
 """
 import subprocess, sys
 
-CLI = sys.argv[1] if len(sys.argv) > 1 else "./ecw"
+CLI = sys.argv[1] if len(sys.argv) > 1 else "./ec"
 
 ERROR_EXPRS = [
  "123e",

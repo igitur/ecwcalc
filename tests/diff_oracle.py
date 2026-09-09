@@ -9,7 +9,7 @@ at a time and take the last non-empty line of the round as the result.
 
 Usage:
   diff_oracle.py [subject-cli] corpus.txt
-    - subject-cli: default ./ecw
+    - subject-cli: default ./ec
     - corpus.txt  : one expression per line (';' comments allowed)
   Reads env: ECW_ORACLE_DIR (dir containing ec.exe + .dlc plugins)
             WINEPREFIX, WINEDEBUG (honored)
@@ -17,7 +17,7 @@ Usage:
 import os, re, select, subprocess, sys, time
 
 ORACLE_DIR = os.environ.get("ECW_ORACLE_DIR", "/tmp/opencode/oracle/ecw106_c")
-SUBJECT = "./ecw"
+SUBJECT = "./ec"
 CORPUS = sys.argv[-1]
 if len(sys.argv) >= 3:
     SUBJECT = sys.argv[1]

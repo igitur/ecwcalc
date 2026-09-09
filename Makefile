@@ -1,9 +1,9 @@
 # ECW Expression Calculator — build wrapper around ./build.sh
 #
-#   make          build the GUI   -> ./ecwcalc
+#   make          build the GUI   -> ./ecw
 #   make gui      build the GUI
-#   make cli      build the CLI   -> ./ecw
-#   make battery  run the regression battery against ./ecw
+#   make cli      build the CLI   -> ./ec
+#   make battery  run the regression battery against ./ec
 #   make clean    remove build artifacts
 
 .PHONY: all gui cli battery clean
@@ -17,9 +17,9 @@ cli:
 	./build.sh cli
 
 battery: cli
-	python3 tests/battery.py ./ecw
+	python3 tests/battery.py ./ec
 
 clean:
 	rm -rf lib lib-cli
-	rm -f ecw ecwcalc ecwcalc.exe
+	rm -f ec ecw ecwcalc ecwcalc.exe
 	rm -f *.o *.ppu *.compiled

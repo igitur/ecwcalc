@@ -54,7 +54,7 @@ implementation
   Reverse-engineered from ecw.exe (v1.04-era, Delphi 3 RTL) and verified
   live against the original console engine (ec.exe v1.03b3) under Wine.
 
-  CLI front end: ./ecw.lpr  (build with ./build.sh cli)
+  CLI front end: ./ec.lpr  (build with ./build.sh cli)
   ============================================================================ }
 
 const

@@ -1,4 +1,4 @@
-# ecwcalc — ECW Expression Calculator (FreePascal port)
+# ECW Expression Calculator (FreePascal port)
 
 A clean-room FreePascal port of the **ECW Expression Calculator** (a legacy
 Delphi 3-era Windows calculator by Alexey Torgashin / UVViewSoft), delivered
@@ -13,8 +13,8 @@ Wine** — 188/188 differential tests pass.
 
 | Path | Description |
 |---|---|
-| `ecwcalc.lpi` / `ecwcalc.lpr` | GUI Lazarus project (uses `ecwengine`) — faithful 4-form layout |
-| `ecw.lpi` / `ecw.lpr` | CLI Lazarus project (uses `ecwengine`) — no LCL dependency |
+| `ecw.lpi` / `ecw.lpr` | GUI Lazarus project (uses `ecwengine`) — faithful 4-form layout |
+| `ec.lpi` / `ec.lpr` | CLI Lazarus project (uses `ecwengine`) — no LCL dependency |
 | `ecwengine.pas` | The expression engine (parser, evaluator, formatter) — shared by CLI and GUI |
 | `build.sh` | `./build.sh` → GUI, `./build.sh cli` → CLI |
 | `Makefile` | Wraps `build.sh`: `make`, `make cli`, `make battery` |
@@ -25,9 +25,12 @@ Wine** — 188/188 differential tests pass.
 Requires Free Pascal 3.2+ (`fpc`) and Lazarus 3.x with LCL (GTK2 or Qt5
 widgetset).
 
+Outputs mirror the original binaries: the console tool builds as `ec`
+(`ec.exe` on Windows) and the GUI as `ecw` (`ecw.exe` on Windows).
+
 ```bash
-./build.sh                     # GUI  -> ./ecwcalc
-./build.sh cli                 # CLI  -> ./ecw
+./build.sh                     # GUI  -> ./ecw
+./build.sh cli                 # CLI  -> ./ec
 ```
 
 The `Makefile` wraps the same commands: `make`/`make gui`, `make cli`, and
@@ -36,31 +39,31 @@ The `Makefile` wraps the same commands: `make`/`make gui`, `make cli`, and
 Or build each conventional project directly with lazbuild:
 
 ```bash
-lazbuild ecwcalc.lpi           # GUI -> ./ecwcalc
-lazbuild ecw.lpi               # CLI -> ./ecw
+lazbuild ecw.lpi               # GUI -> ./ecw
+lazbuild ec.lpi                # CLI -> ./ec
 ```
 
 ### Command line
 
 ```bash
-./ecw "2+3*4"                        # 14
-./ecw --unsigned "0xFFFFFFFF+1"      # 4294967296
-./ecw --sep=1 "1,5+2,5"              # 4   (comma decimal / semicolon list)
-./ecw                                # interactive, prompt '> '
+./ec "2+3*4"                        # 14
+./ec --unsigned "0xFFFFFFFF+1"      # 4294967296
+./ec --sep=1 "1,5+2,5"              # 4   (comma decimal / semicolon list)
+./ec                                # interactive, prompt '> '
 ```
 
 ### GUI
 
 ```bash
 ./build.sh
-./ecwcalc
+./ecw
 ```
 
 The GUI reproduces the original's main form (expression combo with history,
 Copy-as Dec/Hex/Bin/Oct/Exp radios, per-format result fields, Error status,
 Evaluate/Copy/Setup/Help/Close buttons) plus the Setup dialog (interface
 settings + user variables/functions tab) and the Definition dialog. Settings
-persist to `ecwcalc.ini` next to the binary.
+persist to `ecw.ini` next to the binary (config name follows the executable).
 
 ## Language features (all ground-truthed against ECW v1.06)
 

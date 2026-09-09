@@ -13,7 +13,7 @@ Exit:  0 when every diff is an accepted difference; 1 otherwise.
 """
 import json, subprocess, sys
 
-SUBJECT = sys.argv[1] if len(sys.argv) > 1 else "./ecw"
+SUBJECT = sys.argv[1] if len(sys.argv) > 1 else "./ec"
 CORPUS = sys.argv[2] if len(sys.argv) > 2 else "tests/oracle_corpus.jsonl"
 ACCEPTED = "tests/accepted_differences.jsonl"
 

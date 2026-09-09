@@ -1,59 +1,65 @@
-{ ============================================================================
-  ECW Expression Calculator — command-line front end (uses ecwengine)
-  Reverse-engineered from ecw.exe (v1.04-era, Delphi 3 RTL) and verified
-  live against the original console engine (ec.exe v1.03b3) under Wine.
-
-  Usage:  ./ecw "2+3*4"
-          ./ecw --unsigned "--sep=1" "1,5+2,5"
-          ./ecw                       (interactive, prompt '> ')
-  ============================================================================ }
-
 program ecw;
 
 {$mode objfpc}{$H+}
+{$IFDEF WINDOWS}{$APPTYPE GUI}{$ENDIF}
+{$IFDEF WINDOWS}{$R ecw_icon.res}{$ENDIF}
 
 uses
-  SysUtils, ecwengine;
+  {$IFDEF UNIX}{$IFDEF UseCThreads}
+  cthreads,
+  {$ENDIF}{$ENDIF}
+  Interfaces, // this includes the LCL widgetset
+  Forms, LCLType, SysUtils,
+  {$IFDEF WINDOWS}Windows,{$ENDIF}
+  {$IFDEF UNIX}BaseUnix, Unix,{$ENDIF}
+  ecwengine, Config, mainform, cfgform, defform, tinyform;
 
-procedure RunOne(const Expr: string);
+{$IFDEF WINDOWS}
 var
-  v: Extended;
-  M: string;
+  InstanceMutex: THandle;
+function AlreadyRunning: Boolean;
 begin
-  if Trim(Expr) = '' then Exit;
-  if EvalExpr(Expr, v, M) then
-    Writeln(FmtNumber(v))
-  else
-    Writeln('ERROR: ', M);
+  InstanceMutex := CreateMutexW(nil, False, 'ECWCalc_SingleInstance');
+  Result := (InstanceMutex <> 0) and (GetLastError = ERROR_ALREADY_EXISTS);
 end;
-
+{$ELSE}
 var
-  i: Integer;
-  Arg, S: string;
-  Interactive: Boolean;
+  LockFd: Integer = -1;
+function AlreadyRunning: Boolean;
+const
+  LockPath: string = '/tmp/ecwcalc.lock';
 begin
-  InitEngine;
-  i := 1;
-  Interactive := False;
-  while i <= ParamCount do begin
-    Arg := ParamStr(i);
-    if Arg = '--unsigned' then SetUnsignedHex(True)
-    else if Copy(Arg, 1, 6) = '--sep=' then SetSepMode(StrToIntDef(Copy(Arg, 7, 1), 0))
-    else if Arg = '-i' then Interactive := True
-    else begin
-      RunOne(Arg);
-      Exit;
-    end;
-    Inc(i);
+  LockFd := FpOpen(PChar(LockPath), O_WRONLY or O_CREAT, 438);
+  if LockFd < 0 then begin
+    Result := False; // cannot determine; allow start
+    Exit;
   end;
+  if FpFlock(LockFd, LOCK_EX or LOCK_NB) = 0 then
+    Result := False  // we hold the lock; we are the only instance
+  else
+    Result := True;  // another instance holds it
+end;
+{$ENDIF}
 
-  if Interactive or (ParamCount = 0) then begin
-    Interactive := True;
-    while not Eof do begin
-      Write('> ');
-      ReadLn(S);
-      if Trim(S) = '' then Continue;
-      RunOne(Trim(S));
-    end;
+begin
+  RequireDerivedFormResource := True;
+  Application.Scaled := True;
+  Application.Initialize;
+  InitEngine;
+  LoadConfig;
+  // User definitions ship as ecw_defs.ini beside the executable (same layout
+  // as the original ECW); load them so the Definitions tab and engine match.
+  LoadDefsFile(ExtractFilePath(ParamStr(0)) + 'ecw_defs.ini');
+  if (not cfg.AllowMul) and AlreadyRunning then begin
+    Application.MessageBox(
+      'Another instance of ECW Expression Calculator is already running.',
+      'ECW Expression Calculator',
+      MB_OK + MB_ICONINFORMATION);
+    Halt;
   end;
+  if cfg.SmallDialog then
+    Application.CreateForm(TTinyForm, TinyFrm)   // small (simplified) form
+  else
+    Application.CreateForm(TCalcForm, CalcForm);  // full form
+  Application.Run;
 end.

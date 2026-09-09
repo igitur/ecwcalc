@@ -48,19 +48,19 @@ jobs:
         run: |
           mkdir -p dist
           ./build.sh cli --quiet ${{ matrix.clilaz }}
-          cp ecw${{ matrix.exe }} dist/ecw-fpc-${{ matrix.suffix }}${{ matrix.exe }}
-          strip dist/ecw-fpc-${{ matrix.suffix }}${{ matrix.exe }}
+          cp ec${{ matrix.exe }} dist/ec-fpc-${{ matrix.suffix }}${{ matrix.exe }}
+          strip dist/ec-fpc-${{ matrix.suffix }}${{ matrix.exe }}
 
       - name: Build GUI (lazbuild)
         run: |
           mkdir -p dist
           ./build.sh gui --quiet ${{ matrix.laz }}
-          cp ecwcalc${{ matrix.exe }} dist/ecw-fpc-gui-${{ matrix.suffix }}${{ matrix.exe }}
+          cp ecw${{ matrix.exe }} dist/ecw-fpc-gui-${{ matrix.suffix }}${{ matrix.exe }}
           strip dist/ecw-fpc-gui-${{ matrix.suffix }}${{ matrix.exe }}
 
       - name: Battery (regression)
         if: matrix.suffix == 'linux-x64'
-        run: python3 tests/battery.py dist/ecw-fpc-linux-x64
+        run: python3 tests/battery.py dist/ec-fpc-linux-x64
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
