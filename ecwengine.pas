@@ -1456,9 +1456,10 @@ begin
 end;
 
 { 32-bit helpers: match the original's hex/bin/oct result labels.
-  The original shows the result as a 32-bit value (truncated to
-  8 hex / 32 bin / 11 oct digits), with unsigned interpretation
-  when UnsignedHex is on. }
+  The original shows the result as a 32-bit value (8 hex / 32 bin /
+  11 oct digits, full width), with unsigned interpretation when
+  UnsignedHex is on.  When the integer part does not fit in a signed
+  32-bit value the original prints 'overflow' instead of a number. }
 
 function Trunc32(v: Extended): LongWord;
 var i: Int64;
@@ -1468,8 +1469,16 @@ begin
   Result := LongWord(i and $FFFFFFFF);
 end;
 
+function Int32RangeOK(v: Extended): Boolean;
+begin
+  Result := False;
+  if IsNan(v) or IsInfinite(v) then Exit;
+  Result := (Int(v) >= -2147483648.0) and (Int(v) <= 2147483647.0);
+end;
+
 function FmtHex32(v: Extended): string;
 begin
+  if not Int32RangeOK(v) then begin Result := 'overflow'; Exit; end;
   if UnsignedHex then
     Result := IntToHex(Trunc32(v), 8)
   else
@@ -1479,6 +1488,7 @@ end;
 function FmtBin32(v: Extended): string;
 var u: LongWord; i: Integer;
 begin
+  if not Int32RangeOK(v) then begin Result := 'overflow'; Exit; end;
   u := Trunc32(v);
   Result := '';
   for i := 31 downto 0 do
@@ -1488,6 +1498,7 @@ end;
 function FmtOct32(v: Extended): string;
 var u: LongWord; i: Integer;
 begin
+  if not Int32RangeOK(v) then begin Result := 'overflow'; Exit; end;
   u := Trunc32(v);
   Result := '';
   for i := 10 downto 0 do
@@ -1495,9 +1506,40 @@ begin
 end;
 
 function FmtExp(v: Extended): string;
+var
+  av, s, p, q: Extended;
+  e0, i, a, b: Integer;
+  P18: Extended;
+  mant, es, sg: string;
 begin
   if IsNan(v) or IsInfinite(v) then begin Result := 'ERROR'; Exit; end;
-  Result := FloatToStrF(v, ffExponent, 18, 4);
+  if v = 0 then begin Result := FloatToStrF(v, ffExponent, 18, 4); Exit; end;
+  sg := '';
+  if v < 0 then begin sg := '-'; av := -v; end else av := v;
+  e0 := Trunc(Log10(av));
+  q := 1;
+  if e0 <> 0 then begin
+    a := Abs(e0) div 18;
+    b := Abs(e0) mod 18;
+    P18 := 1e18;
+    for i := 1 to a do q := q * P18;
+    for i := 1 to b do q := q * 10;
+  end;
+  if e0 >= 0 then p := q else p := 1 / q;
+  s := av / p;
+  while s >= 10 do begin Inc(e0); if e0 >= 0 then p := p * 10 else p := p / 10; s := av / p; end;
+  while s < 1 do begin Dec(e0); p := p / 10; s := av / p; end;
+  mant := FloatToStrF(s, ffFixed, 0, 17);
+  if (Length(mant) >= 2) and (mant[1] = '1') and (mant[2] = '0') then begin
+    Inc(e0);
+    p := p * 10;
+    s := av / p;
+    mant := FloatToStrF(s, ffFixed, 0, 17);
+  end;
+  es := IntToStr(Abs(e0));
+  while Length(es) < 4 do es := '0' + es;
+  if e0 < 0 then es := '-' + es else es := '+' + es;
+  Result := sg + mant + 'E' + es;
 end;
 
 
