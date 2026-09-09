@@ -266,6 +266,24 @@ for e in VALUE_EXPRS:
         print(f"FAIL: expected value for {e!r}, got {out!r}")
         fail += 1
 
+# FPC-accuracy pins: these deliberately differ from the v1.06 oracle (which
+# is less accurate here). They must keep matching *true* values (verified vs
+# mpmath 60-digit) - see tests/accepted_differences.jsonl. Do not "fix" them
+# to reproduce oracle output.
+FPC_ACCURACY = [
+ ["exp(10000)", "8.80681822566292159E+4342"],
+ ["exp(11356)", "7.04914579998566244E+4931"],
+ ["sinh(1e4)", "4.40340911283146079E+4342"],
+ ["cosh(1e4)", "4.40340911283146079E+4342"],
+ ["e**2", "7.38905609893065023"],
+ ["12345678901234567890", "1.23456789012345679E+0019"],
+]
+for e, want in FPC_ACCURACY:
+    out = run(e)
+    if out != want:
+        print(f"FAIL: fpc-accuracy {e!r}: got {out!r}, want {want!r}")
+        fail += 1
+
 for e, want in SPOTS:
     out = run(e)
     if out != want:

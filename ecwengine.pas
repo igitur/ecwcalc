@@ -245,6 +245,11 @@ begin
 end;
 
 function ChkExp(x: Extended; const Suf: string): Extended;
+{ FPC `Exp` is correctly rounded at all magnitudes (<=1 ulp error) and is
+  deliberately KEPT here: the v1.06 oracle's exp uses the Delphi 3 x87
+  FLDL2E/F2XM1 reduction whose error grows with |x| (457 ulp at 11356).
+  Do NOT replace with an oracle-emulating x87 sequence - see
+  tests/accepted_differences.jsonl (fpc-exp-x87-reduction). }
 begin
   Result := 0;
   if x > Ln(MReal) then begin SetErr('overflow: ' + Suf); Exit; end;
@@ -348,7 +353,11 @@ const
 const
   MaxExtD: Extended = 1.189731495357231765e4932;   // true 80-bit extended max
 
-{ 'e' constant of the original (ec.exe v1.06) = nearest-extended of true e. }
+{ 'e' constant: nearest-extended of true e (46-digit literal). Deliberately
+  KEPT accurate: the v1.06 oracle stores e as the 19-digit literal
+  2.718281828459045235 (E19), 1 ulp low, which makes oracle e*e round down
+  (e**2 = ...022 vs exp(2) = ...023). Do NOT shorten to match the oracle -
+  see tests/accepted_differences.jsonl (fpc-e-constant). }
 function GetE: Extended;
 const
   E0: Extended = 2.7182818284590452353602874713526624977572470937;
