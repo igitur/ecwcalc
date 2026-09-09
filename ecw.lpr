@@ -12,7 +12,7 @@ uses
   Forms, LCLType, SysUtils,
   {$IFDEF WINDOWS}Windows,{$ENDIF}
   {$IFDEF UNIX}BaseUnix, Unix,{$ENDIF}
-  ecwengine, Config, mainform, cfgform, defform, tinyform;
+  ecwengine, Config, mainform, tinyform;
 
 {$IFDEF WINDOWS}
 var

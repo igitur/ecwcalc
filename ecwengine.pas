@@ -63,7 +63,6 @@ const
 const
   MaxArgs = 4000;
   MaxDefs = 256;
-  MaxVars = 100;
   MaxDepth = 32;
 
 type
@@ -457,7 +456,7 @@ begin
   Result := (t1 + t2) / 2;
 end;
 
-function F_TanH(x: Extended; const Suf: string): Extended;
+function F_TanH(x: Extended): Extended;
 var y: Extended;
 begin
   Result := 1;
@@ -497,6 +496,7 @@ end;
 function CallStd(a: Extended; const Fn: string): Extended;
 var t: Extended;
 begin
+  Result := 0;
   case Fn of
     'sin'  : Result := F_Sin(a, Fn);
     'cos'  : Result := F_Cos(a, Fn);
@@ -512,8 +512,8 @@ begin
     'acsc' : begin t := ChkDiv(1, a, Fn); if Err = '' then Result := F_ASin(t, Fn); end;
     'sinh','sh'  : Result := F_SinH(a, Fn);
     'cosh','ch'  : Result := F_CosH(a, Fn);
-    'tanh','th'  : Result := F_TanH(a, Fn);
-    'coth','cth' : Result := ChkDiv(1, F_TanH(a, Fn), Fn);
+    'tanh','th'  : Result := F_TanH(a);
+    'coth','cth' : Result := ChkDiv(1, F_TanH(a), Fn);
     'sech' : Result := ChkDiv(1, F_CosH(a, Fn), Fn);
     'csch' : Result := ChkDiv(1, F_SinH(a, Fn), Fn);
     'asinh': Result := F_ASinH(a, Fn);
@@ -794,7 +794,7 @@ begin
 end;
 
 function PeekOp(out Op: string): Boolean;
-var c1, c2: Char;
+var c1: Char;
 begin
   c1 := PeekC;
   case c1 of
@@ -886,7 +886,7 @@ var
   Start: Integer;
   d: Extended;
   E: Int64;
-  fracDigits, i: Integer;
+  fracDigits: Integer;
   signe: Integer;
   had: Boolean;
   C: Char;
@@ -1066,8 +1066,6 @@ var
   C: Char;
   Name: string;
   V: Extended;
-  di: Integer;
-  i: Integer;
 begin
   Result := 0;
   SkipWS;
@@ -1141,6 +1139,7 @@ var
   lev: Integer;
 begin
   a := ParseUnary;
+  Result := a;
   if Err <> '' then Exit;
   while True do begin
     SkipWS;
@@ -1154,9 +1153,9 @@ begin
     b := ParseExpr(lev + 1);   // left-assoc: RHS must bind tighter
     if Err <> '' then Exit;
     a := ApplyOp(Op, a, b);
+    Result := a;
     if Err <> '' then Exit;
   end;
-  Result := a;
 end;
 
 procedure AddDef(const Name: string; IsFunc: Boolean; NumArgs: Integer;
@@ -1194,7 +1193,6 @@ var
   ArgNames: array[0..63] of string;
   NumArgs: Integer;
   Save: Integer;
-  BodyStart: Integer;
   DeclStart: Integer;
   DepthScan: Integer;
   V: Extended;
@@ -1203,6 +1201,8 @@ var
 begin
   Result := 0;
   LocalVars := nil;
+  NumArgs := 0;
+  for i := 0 to High(ArgNames) do ArgNames[i] := '';
   while True do begin
     SkipWS;
     Save := P;
@@ -1257,7 +1257,6 @@ begin
       NextC; SkipWS;
       Body := '';
       if PeekC = ListSepC then begin SetErr('missing expression'); Exit; end;
-      BodyStart := P;
       if NumArgs > 0 then begin
         // capture body text up to top-level list separator (paren-depth aware)
         Body := '';

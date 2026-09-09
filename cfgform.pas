@@ -1,6 +1,7 @@
 unit cfgform;
 
 {$mode objfpc}{$H+}
+{$HINTS OFF}
 
 interface
 

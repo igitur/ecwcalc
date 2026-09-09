@@ -1,6 +1,7 @@
 unit mainform;
 
 {$mode objfpc}{$H+}
+{$HINTS OFF}
 
 interface
 

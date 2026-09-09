@@ -1,6 +1,7 @@
 unit tinyform;
 
 {$mode objfpc}{$H+}
+{$HINTS OFF}
 
 interface
 

@@ -1,6 +1,7 @@
 unit defform;
 
 {$mode objfpc}{$H+}
+{$HINTS OFF}
 
 interface
 
